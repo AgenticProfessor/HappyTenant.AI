@@ -1,0 +1,630 @@
+// Mock User
+export const mockUser = {
+  id: 'user-1',
+  email: 'sarah.mitchell@example.com',
+  name: 'Sarah Mitchell',
+  avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
+  role: 'landlord',
+};
+
+// Mock Organization
+export const mockOrganization = {
+  id: 'org-1',
+  name: 'Mitchell Properties',
+  slug: 'mitchell-properties',
+  type: 'individual',
+  subscriptionTier: 'pro',
+};
+
+// Mock Tenants
+export const mockTenants = [
+  {
+    id: 'tenant-1',
+    organizationId: 'org-1',
+    name: 'John Smith',
+    email: 'john.smith@email.com',
+    phone: '(512) 555-1234',
+    status: 'active' as const,
+    moveInDate: '2023-06-01',
+    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
+  },
+  {
+    id: 'tenant-2',
+    organizationId: 'org-1',
+    name: 'Lisa Wong',
+    email: 'lisa.wong@email.com',
+    phone: '(512) 555-2345',
+    status: 'active' as const,
+    moveInDate: '2023-03-15',
+    avatarUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150',
+  },
+  {
+    id: 'tenant-3',
+    organizationId: 'org-1',
+    name: 'Mike Johnson',
+    email: 'mike.johnson@email.com',
+    phone: '(512) 555-3456',
+    status: 'active' as const,
+    moveInDate: '2023-01-20',
+    avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
+  },
+  {
+    id: 'tenant-4',
+    organizationId: 'org-1',
+    name: 'Sarah Davis',
+    email: 'sarah.davis@email.com',
+    phone: '(512) 555-4567',
+    status: 'active' as const,
+    moveInDate: '2023-04-10',
+    avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150',
+  },
+  {
+    id: 'tenant-5',
+    organizationId: 'org-1',
+    name: 'David Kim',
+    email: 'david.kim@email.com',
+    phone: '(512) 555-5678',
+    status: 'pending' as const,
+    moveInDate: '2024-01-01',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+  },
+  {
+    id: 'tenant-6',
+    organizationId: 'org-1',
+    name: 'Emily Chen',
+    email: 'emily.chen@email.com',
+    phone: '(512) 555-6789',
+    status: 'past' as const,
+    moveInDate: '2022-06-01',
+    avatarUrl: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=150',
+  },
+];
+
+// Mock Properties
+export const mockProperties = [
+  {
+    id: 'prop-1',
+    organizationId: 'org-1',
+    name: 'Sunset Apartments',
+    type: 'multi_family',
+    address: '123 Sunset Blvd',
+    city: 'Austin',
+    state: 'TX',
+    zipCode: '78701',
+    units: 4,
+  },
+  {
+    id: 'prop-2',
+    organizationId: 'org-1',
+    name: 'Oak Street House',
+    type: 'single_family',
+    address: '456 Oak Street',
+    city: 'Austin',
+    state: 'TX',
+    zipCode: '78702',
+    units: 1,
+  },
+  {
+    id: 'prop-3',
+    organizationId: 'org-1',
+    name: 'Downtown Lofts',
+    type: 'apartment',
+    address: '789 Congress Ave',
+    city: 'Austin',
+    state: 'TX',
+    zipCode: '78703',
+    units: 2,
+  },
+];
+
+// Mock Units
+export const mockUnits = [
+  {
+    id: 'unit-1',
+    propertyId: 'prop-1',
+    name: 'Unit 101',
+    bedrooms: 2,
+    bathrooms: 1,
+    squareFeet: 850,
+    rent: 1800,
+    status: 'occupied' as const,
+  },
+  {
+    id: 'unit-2',
+    propertyId: 'prop-1',
+    name: 'Unit 102',
+    bedrooms: 1,
+    bathrooms: 1,
+    squareFeet: 650,
+    rent: 1400,
+    status: 'occupied' as const,
+  },
+  {
+    id: 'unit-3',
+    propertyId: 'prop-1',
+    name: 'Unit 201',
+    bedrooms: 2,
+    bathrooms: 2,
+    squareFeet: 950,
+    rent: 2000,
+    status: 'occupied' as const,
+  },
+  {
+    id: 'unit-4',
+    propertyId: 'prop-1',
+    name: 'Unit 202',
+    bedrooms: 1,
+    bathrooms: 1,
+    squareFeet: 600,
+    rent: 1350,
+    status: 'vacant' as const,
+  },
+  {
+    id: 'unit-5',
+    propertyId: 'prop-2',
+    name: 'Main House',
+    bedrooms: 3,
+    bathrooms: 2,
+    squareFeet: 1800,
+    rent: 2800,
+    status: 'occupied' as const,
+  },
+  {
+    id: 'unit-6',
+    propertyId: 'prop-3',
+    name: 'Loft A',
+    bedrooms: 1,
+    bathrooms: 1,
+    squareFeet: 800,
+    rent: 1600,
+    status: 'occupied' as const,
+  },
+  {
+    id: 'unit-7',
+    propertyId: 'prop-3',
+    name: 'Loft B',
+    bedrooms: 2,
+    bathrooms: 1,
+    squareFeet: 1000,
+    rent: 2100,
+    status: 'vacant' as const,
+  },
+];
+
+// Mock Leases
+export const mockLeases = [
+  {
+    id: 'lease-1',
+    unitId: 'unit-1',
+    tenantId: 'tenant-1',
+    startDate: '2023-06-01',
+    endDate: '2024-05-31',
+    rentAmount: 1800,
+    securityDeposit: 1800,
+    status: 'active' as const,
+  },
+  {
+    id: 'lease-2',
+    unitId: 'unit-2',
+    tenantId: 'tenant-2',
+    startDate: '2023-03-15',
+    endDate: '2024-03-14',
+    rentAmount: 1400,
+    securityDeposit: 1400,
+    status: 'active' as const,
+  },
+  {
+    id: 'lease-3',
+    unitId: 'unit-3',
+    tenantId: 'tenant-3',
+    startDate: '2023-01-20',
+    endDate: '2024-01-19',
+    rentAmount: 2000,
+    securityDeposit: 2000,
+    status: 'active' as const,
+  },
+  {
+    id: 'lease-4',
+    unitId: 'unit-5',
+    tenantId: 'tenant-4',
+    startDate: '2023-04-10',
+    endDate: '2024-04-09',
+    rentAmount: 2800,
+    securityDeposit: 2800,
+    status: 'active' as const,
+  },
+];
+
+// Mock Transactions
+export const mockTransactions = [
+  {
+    id: 'tx-1',
+    propertyId: 'prop-1',
+    unitId: 'unit-1',
+    tenantId: 'tenant-1',
+    type: 'income' as const,
+    category: 'rent',
+    description: 'November Rent - Unit 101',
+    amount: 1800,
+    date: '2024-11-01',
+    status: 'completed' as const,
+  },
+  {
+    id: 'tx-2',
+    propertyId: 'prop-1',
+    unitId: 'unit-2',
+    tenantId: 'tenant-2',
+    type: 'income' as const,
+    category: 'rent',
+    description: 'November Rent - Unit 102',
+    amount: 1400,
+    date: '2024-11-01',
+    status: 'completed' as const,
+  },
+  {
+    id: 'tx-3',
+    propertyId: 'prop-1',
+    type: 'expense' as const,
+    category: 'maintenance',
+    description: 'Plumbing repair - Building common area',
+    amount: 350,
+    date: '2024-11-05',
+    status: 'completed' as const,
+  },
+  {
+    id: 'tx-4',
+    propertyId: 'prop-2',
+    unitId: 'unit-5',
+    tenantId: 'tenant-4',
+    type: 'income' as const,
+    category: 'rent',
+    description: 'November Rent - Oak Street House',
+    amount: 2800,
+    date: '2024-11-01',
+    status: 'pending' as const,
+  },
+  {
+    id: 'tx-5',
+    propertyId: 'prop-3',
+    type: 'expense' as const,
+    category: 'utilities',
+    description: 'Water bill - Downtown Lofts',
+    amount: 180,
+    date: '2024-11-10',
+    status: 'completed' as const,
+  },
+];
+
+// Mock Maintenance Requests
+export const mockMaintenanceRequests = [
+  {
+    id: 'maint-1',
+    unitId: 'unit-1',
+    tenantId: 'tenant-1',
+    title: 'Kitchen faucet leaking',
+    description: 'The kitchen faucet has been dripping for the past few days. Water is pooling under the sink.',
+    category: 'plumbing',
+    priority: 'high' as const,
+    status: 'open' as const,
+    createdAt: '2024-11-08',
+  },
+  {
+    id: 'maint-2',
+    unitId: 'unit-3',
+    tenantId: 'tenant-3',
+    title: 'HVAC making noise',
+    description: 'The AC unit is making a loud grinding noise when it turns on.',
+    category: 'hvac',
+    priority: 'normal' as const,
+    status: 'in_progress' as const,
+    createdAt: '2024-11-05',
+  },
+  {
+    id: 'maint-3',
+    unitId: 'unit-5',
+    tenantId: 'tenant-4',
+    title: 'Garage door won\'t open',
+    description: 'The garage door remote stopped working. Tried replacing batteries but still doesn\'t work.',
+    category: 'electrical',
+    priority: 'normal' as const,
+    status: 'completed' as const,
+    createdAt: '2024-11-01',
+  },
+];
+
+// Mock Conversations
+export const mockConversations = [
+  {
+    id: 'conv-1',
+    participantIds: ['user-1', 'tenant-1'],
+    unreadCount: 2,
+    lastMessageAt: '2024-11-10T10:30:00',
+  },
+  {
+    id: 'conv-2',
+    participantIds: ['user-1', 'tenant-3'],
+    unreadCount: 0,
+    lastMessageAt: '2024-11-09T14:15:00',
+  },
+  {
+    id: 'conv-3',
+    participantIds: ['user-1', 'tenant-4'],
+    unreadCount: 1,
+    lastMessageAt: '2024-11-08T09:45:00',
+  },
+];
+
+// Mock Messages
+export const mockMessages = [
+  {
+    id: 'msg-1',
+    conversationId: 'conv-1',
+    senderId: 'tenant-1',
+    content: 'Hi, the kitchen faucet is still leaking. Any update on when the plumber can come?',
+    timestamp: '2024-11-10T10:30:00',
+    read: false,
+  },
+  {
+    id: 'msg-2',
+    conversationId: 'conv-1',
+    senderId: 'user-1',
+    content: 'Hi John! I\'ve scheduled a plumber for tomorrow between 10am-12pm. Does that work for you?',
+    timestamp: '2024-11-10T10:35:00',
+    read: true,
+  },
+  {
+    id: 'msg-3',
+    conversationId: 'conv-1',
+    senderId: 'tenant-1',
+    content: 'That works perfectly, thanks!',
+    timestamp: '2024-11-10T10:40:00',
+    read: false,
+  },
+  {
+    id: 'msg-4',
+    conversationId: 'conv-2',
+    senderId: 'tenant-3',
+    content: 'Thank you for fixing the AC! It\'s working great now.',
+    timestamp: '2024-11-09T14:15:00',
+    read: true,
+  },
+  {
+    id: 'msg-5',
+    conversationId: 'conv-3',
+    senderId: 'tenant-4',
+    content: 'Will I get a rent receipt for this month?',
+    timestamp: '2024-11-08T09:45:00',
+    read: false,
+  },
+];
+
+// Mock Dashboard Stats
+export const mockDashboardStats = {
+  totalRevenue: 8800,
+  totalProperties: 3,
+  totalUnits: 7,
+  occupiedUnits: 5,
+  activeTenants: 5,
+  collectionRate: 85,
+  collectedRent: 7000,
+  outstandingRent: 1800,
+  openMaintenanceRequests: 2,
+};
+
+// Mock AI Insights
+export const mockAIInsights = [
+  {
+    id: 'insight-1',
+    type: 'collection_risk',
+    message: 'Tenant in Unit 202 has been consistently late on payments. Consider setting up automatic reminders.',
+    priority: 'high' as const,
+  },
+  {
+    id: 'insight-2',
+    type: 'maintenance_prediction',
+    message: 'HVAC system at Sunset Apartments is due for annual maintenance based on service history.',
+    priority: 'medium' as const,
+  },
+  {
+    id: 'insight-3',
+    type: 'rent_optimization',
+    message: 'Market analysis suggests Unit 202 rent could be increased by $100/month based on comparable units.',
+    priority: 'low' as const,
+  },
+];
+
+// Mock Documents
+export const mockDocuments = [
+  {
+    id: 'doc-1',
+    organizationId: 'org-1',
+    name: 'Lease Agreement - Unit 101',
+    type: 'lease' as const,
+    category: 'Lease Agreement',
+    fileUrl: '/documents/lease-unit-101.pdf',
+    fileSize: 245000,
+    mimeType: 'application/pdf',
+    propertyId: 'prop-1',
+    unitId: 'unit-1',
+    tenantId: 'tenant-1',
+    leaseId: 'lease-1',
+    signatureStatus: 'signed' as const,
+    uploadedByUserId: 'user-1',
+    uploadedAt: new Date('2023-06-01'),
+    tags: ['active', 'signed'],
+    description: 'Current active lease for Unit 101'
+  },
+  {
+    id: 'doc-2',
+    organizationId: 'org-1',
+    name: 'Lease Agreement - Unit 102',
+    type: 'lease' as const,
+    category: 'Lease Agreement',
+    fileUrl: '/documents/lease-unit-102.pdf',
+    fileSize: 238000,
+    mimeType: 'application/pdf',
+    propertyId: 'prop-1',
+    unitId: 'unit-2',
+    tenantId: 'tenant-2',
+    leaseId: 'lease-2',
+    signatureStatus: 'signed' as const,
+    uploadedByUserId: 'user-1',
+    uploadedAt: new Date('2023-03-15'),
+    tags: ['active', 'signed'],
+    description: 'Current active lease for Unit 102'
+  },
+  {
+    id: 'doc-3',
+    organizationId: 'org-1',
+    name: 'Standard Lease Template',
+    type: 'template' as const,
+    category: 'Lease Template',
+    fileUrl: '/documents/standard-lease-template.pdf',
+    fileSize: 189000,
+    mimeType: 'application/pdf',
+    signatureStatus: 'not_required' as const,
+    uploadedByUserId: 'user-1',
+    uploadedAt: new Date('2023-01-10'),
+    tags: ['template', 'standard'],
+    description: 'Standard residential lease template for Texas'
+  },
+  {
+    id: 'doc-4',
+    organizationId: 'org-1',
+    name: 'Late Notice Template',
+    type: 'template' as const,
+    category: 'Notice Template',
+    fileUrl: '/documents/late-notice-template.pdf',
+    fileSize: 45000,
+    mimeType: 'application/pdf',
+    signatureStatus: 'not_required' as const,
+    uploadedByUserId: 'user-1',
+    uploadedAt: new Date('2023-01-10'),
+    tags: ['template', 'notice'],
+    description: 'Template for late payment notices'
+  },
+  {
+    id: 'doc-5',
+    organizationId: 'org-1',
+    name: 'November 2024 Rent Receipt - John Smith',
+    type: 'receipt' as const,
+    category: 'Payment Receipt',
+    fileUrl: '/documents/receipt-nov-2024-tenant-1.pdf',
+    fileSize: 68000,
+    mimeType: 'application/pdf',
+    propertyId: 'prop-1',
+    unitId: 'unit-1',
+    tenantId: 'tenant-1',
+    signatureStatus: 'not_required' as const,
+    uploadedByUserId: 'user-1',
+    uploadedAt: new Date('2024-11-01'),
+    tags: ['receipt', '2024'],
+    description: 'Rent payment receipt for November 2024'
+  },
+  {
+    id: 'doc-6',
+    organizationId: 'org-1',
+    name: 'November 2024 Rent Receipt - Lisa Wong',
+    type: 'receipt' as const,
+    category: 'Payment Receipt',
+    fileUrl: '/documents/receipt-nov-2024-tenant-2.pdf',
+    fileSize: 67500,
+    mimeType: 'application/pdf',
+    propertyId: 'prop-1',
+    unitId: 'unit-2',
+    tenantId: 'tenant-2',
+    signatureStatus: 'not_required' as const,
+    uploadedByUserId: 'user-1',
+    uploadedAt: new Date('2024-11-01'),
+    tags: ['receipt', '2024'],
+    description: 'Rent payment receipt for November 2024'
+  },
+  {
+    id: 'doc-7',
+    organizationId: 'org-1',
+    name: 'Property Insurance Policy - Sunset Apartments',
+    type: 'insurance' as const,
+    category: 'Insurance',
+    fileUrl: '/documents/insurance-sunset-apartments.pdf',
+    fileSize: 456000,
+    mimeType: 'application/pdf',
+    propertyId: 'prop-1',
+    signatureStatus: 'not_required' as const,
+    uploadedByUserId: 'user-1',
+    uploadedAt: new Date('2024-01-15'),
+    tags: ['insurance', '2024'],
+    description: 'Annual property insurance policy'
+  },
+  {
+    id: 'doc-8',
+    organizationId: 'org-1',
+    name: 'Move-In Inspection Report - Unit 101',
+    type: 'inspection' as const,
+    category: 'Inspection Report',
+    fileUrl: '/documents/inspection-unit-101.pdf',
+    fileSize: 1200000,
+    mimeType: 'application/pdf',
+    propertyId: 'prop-1',
+    unitId: 'unit-1',
+    tenantId: 'tenant-1',
+    signatureStatus: 'signed' as const,
+    uploadedByUserId: 'user-1',
+    uploadedAt: new Date('2023-06-01'),
+    tags: ['inspection', 'move-in'],
+    description: 'Move-in inspection report with photos'
+  },
+  {
+    id: 'doc-9',
+    organizationId: 'org-1',
+    name: 'Lease Renewal Notice - Unit 201',
+    type: 'notice' as const,
+    category: 'Lease Notice',
+    fileUrl: '/documents/renewal-notice-unit-201.pdf',
+    fileSize: 78000,
+    mimeType: 'application/pdf',
+    propertyId: 'prop-1',
+    unitId: 'unit-3',
+    tenantId: 'tenant-3',
+    signatureStatus: 'pending' as const,
+    uploadedByUserId: 'user-1',
+    uploadedAt: new Date('2024-11-15'),
+    tags: ['notice', 'renewal'],
+    description: 'Lease renewal notice for upcoming term'
+  },
+  {
+    id: 'doc-10',
+    organizationId: 'org-1',
+    name: 'W-9 Tax Form',
+    type: 'other' as const,
+    category: 'Tax Document',
+    fileUrl: '/documents/w9-form.pdf',
+    fileSize: 125000,
+    mimeType: 'application/pdf',
+    signatureStatus: 'signed' as const,
+    uploadedByUserId: 'user-1',
+    uploadedAt: new Date('2024-01-05'),
+    tags: ['tax', '2024'],
+    description: 'W-9 tax form for property business'
+  }
+];
+
+// Helper functions
+export const getPropertyById = (id: string) => {
+  return mockProperties.find((p) => p.id === id);
+};
+
+export const getTenantById = (id: string) => {
+  return mockTenants.find((t) => t.id === id);
+};
+
+export const getUnitById = (id: string) => {
+  return mockUnits.find((u) => u.id === id);
+};
+
+export const getLeaseByTenantId = (tenantId: string) => {
+  return mockLeases.find((l) => l.tenantId === tenantId && l.status === 'active');
+};
+
+export const getMaintenanceRequestsByUnit = (unitId: string) => {
+  return mockMaintenanceRequests.filter((m) => m.unitId === unitId);
+};

@@ -1,0 +1,290 @@
+/**
+ * Color Utility Classes
+ *
+ * Consistent status colors, priority colors, and opacity variants
+ * for the Happy Tenant application.
+ *
+ * Import this file in globals.css to use these utilities throughout the app.
+ */
+
+@layer utilities {
+  /* ===========================
+     STATUS COLORS
+     =========================== */
+
+  /* Success - Green */
+  .text-success {
+    color: var(--success);
+  }
+
+  .bg-success {
+    background-color: var(--success);
+  }
+
+  .border-success {
+    border-color: var(--success);
+  }
+
+  .bg-success\/10 {
+    background-color: oklch(from var(--success) l c h / 0.1);
+  }
+
+  .bg-success\/20 {
+    background-color: oklch(from var(--success) l c h / 0.2);
+  }
+
+  .text-success\/80 {
+    color: oklch(from var(--success) l c h / 0.8);
+  }
+
+  /* Warning - Amber */
+  .text-warning {
+    color: var(--warning);
+  }
+
+  .bg-warning {
+    background-color: var(--warning);
+  }
+
+  .border-warning {
+    border-color: var(--warning);
+  }
+
+  .bg-warning\/10 {
+    background-color: oklch(from var(--warning) l c h / 0.1);
+  }
+
+  .bg-warning\/20 {
+    background-color: oklch(from var(--warning) l c h / 0.2);
+  }
+
+  .text-warning\/80 {
+    color: oklch(from var(--warning) l c h / 0.8);
+  }
+
+  /* Error/Destructive - Red (uses existing destructive color) */
+  .text-error {
+    color: var(--destructive);
+  }
+
+  .bg-error {
+    background-color: var(--destructive);
+  }
+
+  .border-error {
+    border-color: var(--destructive);
+  }
+
+  .bg-error\/10 {
+    background-color: oklch(from var(--destructive) l c h / 0.1);
+  }
+
+  .bg-error\/20 {
+    background-color: oklch(from var(--destructive) l c h / 0.2);
+  }
+
+  /* Info - Accent (cyan) */
+  .text-info {
+    color: var(--accent);
+  }
+
+  .bg-info {
+    background-color: var(--accent);
+  }
+
+  .border-info {
+    border-color: var(--accent);
+  }
+
+  .bg-info\/10 {
+    background-color: oklch(from var(--accent) l c h / 0.1);
+  }
+
+  .bg-info\/20 {
+    background-color: oklch(from var(--accent) l c h / 0.2);
+  }
+
+  /* ===========================
+     PRIORITY COLORS
+     =========================== */
+
+  /* Emergency - Red (high urgency) */
+  .priority-emergency {
+    color: var(--destructive);
+  }
+
+  .bg-priority-emergency {
+    background-color: var(--destructive);
+  }
+
+  .bg-priority-emergency\/10 {
+    background-color: oklch(from var(--destructive) l c h / 0.1);
+  }
+
+  .border-priority-emergency {
+    border-color: var(--destructive);
+  }
+
+  /* High - Warning (medium-high urgency) */
+  .priority-high {
+    color: var(--warning);
+  }
+
+  .bg-priority-high {
+    background-color: var(--warning);
+  }
+
+  .bg-priority-high\/10 {
+    background-color: oklch(from var(--warning) l c h / 0.1);
+  }
+
+  .border-priority-high {
+    border-color: var(--warning);
+  }
+
+  /* Normal - Accent (standard priority) */
+  .priority-normal {
+    color: var(--accent);
+  }
+
+  .bg-priority-normal {
+    background-color: var(--accent);
+  }
+
+  .bg-priority-normal\/10 {
+    background-color: oklch(from var(--accent) l c h / 0.1);
+  }
+
+  .border-priority-normal {
+    border-color: var(--accent);
+  }
+
+  /* Low - Muted (low urgency) */
+  .priority-low {
+    color: var(--muted-foreground);
+  }
+
+  .bg-priority-low {
+    background-color: var(--muted);
+  }
+
+  .bg-priority-low\/10 {
+    background-color: oklch(from var(--muted) l c h / 0.1);
+  }
+
+  .border-priority-low {
+    border-color: var(--muted);
+  }
+
+  /* ===========================
+     ACCENT COLORS (Brand)
+     =========================== */
+
+  /* Coral - Warmth, energy */
+  .text-coral {
+    color: var(--coral);
+  }
+
+  .bg-coral {
+    background-color: var(--coral);
+  }
+
+  .bg-coral-light {
+    background-color: var(--coral-light);
+  }
+
+  .border-coral {
+    border-color: var(--coral);
+  }
+
+  /* Mint - Freshness, trust */
+  .text-mint {
+    color: var(--mint);
+  }
+
+  .bg-mint {
+    background-color: var(--mint);
+  }
+
+  .bg-mint-light {
+    background-color: var(--mint-light);
+  }
+
+  .border-mint {
+    border-color: var(--mint);
+  }
+
+  /* ===========================
+     OPACITY VARIANTS
+     =========================== */
+
+  /* Primary with opacity */
+  .bg-primary\/5 {
+    background-color: oklch(from var(--primary) l c h / 0.05);
+  }
+
+  .bg-primary\/10 {
+    background-color: oklch(from var(--primary) l c h / 0.1);
+  }
+
+  .bg-primary\/20 {
+    background-color: oklch(from var(--primary) l c h / 0.2);
+  }
+
+  .border-primary\/20 {
+    border-color: oklch(from var(--primary) l c h / 0.2);
+  }
+
+  .border-primary\/30 {
+    border-color: oklch(from var(--primary) l c h / 0.3);
+  }
+
+  /* Accent with opacity */
+  .bg-accent\/5 {
+    background-color: oklch(from var(--accent) l c h / 0.05);
+  }
+
+  .bg-accent\/10 {
+    background-color: oklch(from var(--accent) l c h / 0.1);
+  }
+
+  .bg-accent\/20 {
+    background-color: oklch(from var(--accent) l c h / 0.2);
+  }
+}
+
+/**
+ * Usage Guidelines:
+ *
+ * STATUS COLORS:
+ * - Success: Completed tasks, successful payments, positive feedback
+ * - Warning: Pending items, attention needed, caution states
+ * - Error: Failed operations, validation errors, critical issues
+ * - Info: Informational messages, tips, neutral notifications
+ *
+ * PRIORITY COLORS:
+ * - Emergency: Urgent maintenance requests, critical deadlines
+ * - High: Important tasks, overdue items
+ * - Normal: Standard operations, regular maintenance
+ * - Low: Nice-to-have items, low priority tasks
+ *
+ * ACCENT COLORS:
+ * - Coral: Warmth, energy - Use for CTAs, highlights
+ * - Mint: Freshness, trust - Use for success states, positive actions
+ *
+ * EXAMPLES:
+ *
+ * Status Badge:
+ * <Badge className="bg-success/10 text-success border-success">Active</Badge>
+ *
+ * Priority Indicator:
+ * <div className="bg-priority-high/10 border-priority-high border-l-4 p-4">
+ *   High priority item
+ * </div>
+ *
+ * Alert with Status:
+ * <Alert className="bg-warning/10 border-warning">
+ *   <AlertCircle className="text-warning" />
+ *   <AlertDescription>Payment overdue</AlertDescription>
+ * </Alert>
+ */
