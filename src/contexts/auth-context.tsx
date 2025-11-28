@@ -2,7 +2,7 @@
 
 import { createContext, useContext, ReactNode, useEffect } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
-import { useRouter } from 'next/navigation';
+import { useUser, useClerk } from '@clerk/nextjs';
 
 interface User {
   id: string;
@@ -25,7 +25,6 @@ interface AuthContextType {
   organization: Organization | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   hasRole: (role: string | string[]) => boolean;
   hasPermission: (permission: string) => boolean;
@@ -38,7 +37,8 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const router = useRouter();
+  const { user: clerkUser, isLoaded: clerkLoaded, isSignedIn } = useUser();
+  const { signOut } = useClerk();
   const {
     user,
     organization,
@@ -51,77 +51,97 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setLoading,
   } = useAuthStore();
 
-  // Stub login function - replace with real authentication
-  const login = async (email: string, password: string) => {
-    try {
-      setLoading(true);
+  // Sync Clerk user with our auth store
+  useEffect(() => {
+    const syncUser = async () => {
+      if (!clerkLoaded) return;
 
-      // TODO: Replace with actual API call
-      // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email, password }),
-      // });
-      //
-      // if (!response.ok) throw new Error('Login failed');
-      //
-      // const { user, organization, token } = await response.json();
-      //
-      // // Store token
-      // localStorage.setItem('auth_token', token);
-      //
-      // storeLogin(user, organization);
+      if (isSignedIn && clerkUser) {
+        setLoading(true);
+        try {
+          // Fetch user and organization from our API
+          const response = await fetch('/api/auth/me');
 
-      // For now, simulate successful login
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+          if (response.ok) {
+            const data = await response.json();
+            storeLogin(
+              {
+                id: clerkUser.id,
+                email: clerkUser.primaryEmailAddress?.emailAddress || '',
+                name: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || 'User',
+                avatarUrl: clerkUser.imageUrl,
+                role: data.user?.role?.toLowerCase() || 'landlord',
+              },
+              data.organization ? {
+                id: data.organization.id,
+                name: data.organization.name,
+                slug: data.organization.slug,
+                type: data.organization.type?.toLowerCase() || 'individual',
+                subscriptionTier: data.organization.subscriptionTier?.toLowerCase() || 'free',
+              } : {
+                id: 'temp',
+                name: `${clerkUser.firstName || 'My'}'s Properties`,
+                slug: clerkUser.id,
+                type: 'individual' as const,
+                subscriptionTier: 'free' as const,
+              }
+            );
+          } else {
+            // If API fails, use Clerk data directly
+            storeLogin(
+              {
+                id: clerkUser.id,
+                email: clerkUser.primaryEmailAddress?.emailAddress || '',
+                name: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || 'User',
+                avatarUrl: clerkUser.imageUrl,
+                role: 'landlord',
+              },
+              {
+                id: 'temp',
+                name: `${clerkUser.firstName || 'My'}'s Properties`,
+                slug: clerkUser.id,
+                type: 'individual' as const,
+                subscriptionTier: 'free' as const,
+              }
+            );
+          }
+        } catch (error) {
+          console.error('Error syncing user:', error);
+          // Fallback to Clerk data
+          storeLogin(
+            {
+              id: clerkUser.id,
+              email: clerkUser.primaryEmailAddress?.emailAddress || '',
+              name: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || 'User',
+              avatarUrl: clerkUser.imageUrl,
+              role: 'landlord',
+            },
+            {
+              id: 'temp',
+              name: `${clerkUser.firstName || 'My'}'s Properties`,
+              slug: clerkUser.id,
+              type: 'individual' as const,
+              subscriptionTier: 'free' as const,
+            }
+          );
+        } finally {
+          setLoading(false);
+        }
+      } else if (clerkLoaded && !isSignedIn) {
+        storeLogout();
+        setLoading(false);
+      }
+    };
 
-      // Mock user data
-      const mockUser = {
-        id: 'user-1',
-        email,
-        name: 'Sarah Mitchell',
-        avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
-        role: 'landlord' as const,
-      };
+    syncUser();
+  }, [clerkUser, clerkLoaded, isSignedIn, storeLogin, storeLogout, setLoading]);
 
-      const mockOrg = {
-        id: 'org-1',
-        name: 'Mitchell Properties',
-        slug: 'mitchell-properties',
-        type: 'individual' as const,
-        subscriptionTier: 'pro' as const,
-      };
-
-      storeLogin(mockUser, mockOrg);
-      router.push('/dashboard');
-    } catch (error) {
-      console.error('Login error:', error);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Stub logout function - replace with real authentication
+  // Logout using Clerk
   const logout = async () => {
     try {
       setLoading(true);
-
-      // TODO: Replace with actual API call
-      // await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/logout`, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-      //   },
-      // });
-      //
-      // localStorage.removeItem('auth_token');
-
-      // For now, simulate logout
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
+      await signOut();
       storeLogout();
-      router.push('/sign-in');
     } catch (error) {
       console.error('Logout error:', error);
       throw error;
@@ -130,45 +150,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  // Optional: Validate token on mount
-  useEffect(() => {
-    const validateSession = async () => {
-      // TODO: Replace with actual session validation
-      // const token = localStorage.getItem('auth_token');
-      // if (!token) {
-      //   storeLogout();
-      //   return;
-      // }
-      //
-      // try {
-      //   const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, {
-      //     headers: {
-      //       'Authorization': `Bearer ${token}`,
-      //     },
-      //   });
-      //
-      //   if (!response.ok) {
-      //     storeLogout();
-      //     return;
-      //   }
-      //
-      //   const { user, organization } = await response.json();
-      //   storeLogin(user, organization);
-      // } catch (error) {
-      //   console.error('Session validation error:', error);
-      //   storeLogout();
-      // }
-    };
-
-    // validateSession();
-  }, []);
-
   const value: AuthContextType = {
     user,
     organization,
-    isAuthenticated,
-    isLoading,
-    login,
+    isAuthenticated: isSignedIn || isAuthenticated,
+    isLoading: !clerkLoaded || isLoading,
     logout,
     hasRole,
     hasPermission,
