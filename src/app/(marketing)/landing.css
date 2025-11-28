@@ -1,0 +1,783 @@
+/* Happy Tenant Landing Page - Refined Futurism Theme */
+/* White, Black, Baby Blue - Elegant & Modern */
+
+/* ============================================
+   CUSTOM FONTS
+   ============================================ */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
+
+/* ============================================
+   LANDING PAGE THEME VARIABLES
+   ============================================ */
+.landing-page {
+  /* Core Colors */
+  --lp-white: #ffffff;
+  --lp-off-white: #f8fafc;
+  --lp-gray-50: #f1f5f9;
+  --lp-gray-100: #e2e8f0;
+  --lp-gray-200: #cbd5e1;
+  --lp-gray-400: #94a3b8;
+  --lp-gray-600: #475569;
+  --lp-black: #0f172a;
+  --lp-black-soft: #1e293b;
+
+  /* Baby Blue Accent */
+  --lp-blue: #60a5fa;
+  --lp-blue-light: #93c5fd;
+  --lp-blue-lighter: #dbeafe;
+  --lp-blue-dark: #3b82f6;
+  --lp-blue-glow: rgba(96, 165, 250, 0.15);
+  --lp-blue-glow-strong: rgba(96, 165, 250, 0.25);
+
+  /* Typography */
+  --font-display: 'Outfit', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+
+  /* Shadows */
+  --lp-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --lp-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --lp-shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.08);
+  --lp-shadow-xl: 0 24px 60px rgba(0, 0, 0, 0.1);
+  --lp-shadow-blue: 0 8px 30px rgba(96, 165, 250, 0.2);
+  --lp-shadow-float: 0 20px 50px rgba(0, 0, 0, 0.12);
+
+  /* Base */
+  font-family: var(--font-body);
+  background: var(--lp-white);
+  color: var(--lp-black);
+  overflow-x: hidden;
+}
+
+/* ============================================
+   GRAIN TEXTURE OVERLAY
+   ============================================ */
+.landing-page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.02;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* ============================================
+   TYPOGRAPHY
+   ============================================ */
+.lp-heading {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--lp-black);
+}
+
+.lp-heading-hero {
+  font-size: clamp(3rem, 7vw, 5.5rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.lp-heading-section {
+  font-size: clamp(2rem, 4vw, 3.5rem);
+}
+
+.lp-heading-card {
+  font-size: clamp(1.25rem, 2vw, 1.5rem);
+  font-weight: 600;
+}
+
+.lp-text {
+  font-family: var(--font-body);
+  font-size: 1.125rem;
+  line-height: 1.7;
+  color: var(--lp-gray-600);
+}
+
+.lp-text-sm {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.lp-text-blue {
+  color: var(--lp-blue-dark);
+}
+
+.lp-text-gradient {
+  background: linear-gradient(135deg, var(--lp-blue-dark) 0%, var(--lp-blue) 50%, var(--lp-blue-light) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================================
+   LAYOUT
+   ============================================ */
+.lp-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .lp-container {
+    padding: 0 2.5rem;
+  }
+}
+
+.lp-section {
+  padding: 6rem 0;
+}
+
+@media (min-width: 768px) {
+  .lp-section {
+    padding: 8rem 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  .lp-section {
+    padding: 10rem 0;
+  }
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+.lp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 0.9375rem;
+  border-radius: 100px;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.lp-btn-primary {
+  padding: 1rem 2rem;
+  background: var(--lp-black);
+  color: var(--lp-white);
+  border: none;
+}
+
+.lp-btn-primary:hover {
+  background: var(--lp-black-soft);
+  transform: translateY(-2px);
+  box-shadow: var(--lp-shadow-lg);
+}
+
+.lp-btn-primary-blue {
+  padding: 1rem 2rem;
+  background: var(--lp-blue);
+  color: var(--lp-white);
+  border: none;
+}
+
+.lp-btn-primary-blue:hover {
+  background: var(--lp-blue-dark);
+  transform: translateY(-2px);
+  box-shadow: var(--lp-shadow-blue);
+}
+
+.lp-btn-secondary {
+  padding: 1rem 2rem;
+  background: transparent;
+  color: var(--lp-black);
+  border: 1px solid var(--lp-gray-200);
+}
+
+.lp-btn-secondary:hover {
+  border-color: var(--lp-blue);
+  color: var(--lp-blue-dark);
+  background: var(--lp-blue-glow);
+}
+
+.lp-btn-ghost {
+  padding: 0.75rem 1.25rem;
+  background: transparent;
+  color: var(--lp-gray-600);
+  border: none;
+}
+
+.lp-btn-ghost:hover {
+  color: var(--lp-blue-dark);
+}
+
+/* ============================================
+   CARDS
+   ============================================ */
+.lp-card {
+  background: var(--lp-white);
+  border: 1px solid var(--lp-gray-100);
+  border-radius: 24px;
+  padding: 2rem;
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lp-card:hover {
+  border-color: var(--lp-blue-light);
+  box-shadow: var(--lp-shadow-lg);
+  transform: translateY(-4px);
+}
+
+.lp-card-floating {
+  background: var(--lp-white);
+  border: 1px solid var(--lp-gray-100);
+  border-radius: 20px;
+  box-shadow: var(--lp-shadow-float);
+}
+
+.lp-card-glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 24px;
+}
+
+.lp-card-dark {
+  background: var(--lp-black);
+  border: 1px solid var(--lp-black-soft);
+  color: var(--lp-white);
+}
+
+/* ============================================
+   BADGES
+   ============================================ */
+.lp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-family: var(--font-display);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  border-radius: 100px;
+  background: var(--lp-blue-lighter);
+  color: var(--lp-blue-dark);
+}
+
+.lp-badge-outline {
+  background: transparent;
+  border: 1px solid var(--lp-gray-200);
+  color: var(--lp-gray-600);
+}
+
+.lp-badge-dark {
+  background: var(--lp-black);
+  color: var(--lp-white);
+}
+
+/* ============================================
+   ICON CONTAINERS
+   ============================================ */
+.lp-icon-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  background: var(--lp-blue-lighter);
+  border-radius: 16px;
+  color: var(--lp-blue-dark);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lp-icon-box-sm {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+}
+
+.lp-icon-box:hover {
+  background: var(--lp-blue);
+  color: var(--lp-white);
+  transform: scale(1.05);
+}
+
+/* ============================================
+   HERO BACKGROUND
+   ============================================ */
+.lp-hero-bg {
+  position: relative;
+  background: linear-gradient(180deg, var(--lp-white) 0%, var(--lp-off-white) 100%);
+  overflow: hidden;
+}
+
+.lp-hero-bg::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 80%;
+  height: 150%;
+  background: radial-gradient(ellipse, var(--lp-blue-glow) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.lp-hero-bg::after {
+  content: '';
+  position: absolute;
+  bottom: -30%;
+  left: -10%;
+  width: 50%;
+  height: 80%;
+  background: radial-gradient(ellipse, var(--lp-blue-glow) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* Grid Pattern */
+.lp-grid-pattern {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--lp-gray-100) 1px, transparent 1px),
+    linear-gradient(90deg, var(--lp-gray-100) 1px, transparent 1px);
+  background-size: 80px 80px;
+  opacity: 0.5;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 20%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 20%, transparent 70%);
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+.lp-fade-in {
+  opacity: 0;
+  transform: translateY(30px);
+  animation: lpFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes lpFadeIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.lp-delay-1 { animation-delay: 0.1s; }
+.lp-delay-2 { animation-delay: 0.2s; }
+.lp-delay-3 { animation-delay: 0.3s; }
+.lp-delay-4 { animation-delay: 0.4s; }
+.lp-delay-5 { animation-delay: 0.5s; }
+.lp-delay-6 { animation-delay: 0.6s; }
+
+/* Floating Animation */
+.lp-float {
+  animation: lpFloat 6s ease-in-out infinite;
+}
+
+@keyframes lpFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+.lp-float-delayed {
+  animation: lpFloat 6s ease-in-out infinite;
+  animation-delay: 1.5s;
+}
+
+/* Pulse Ring */
+.lp-pulse-ring {
+  position: relative;
+}
+
+.lp-pulse-ring::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 2px solid var(--lp-blue);
+  opacity: 0;
+  animation: lpPulseRing 2s ease-out infinite;
+}
+
+@keyframes lpPulseRing {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.15);
+    opacity: 0;
+  }
+}
+
+/* Shimmer */
+.lp-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.lp-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  animation: lpShimmer 2.5s ease-in-out infinite;
+}
+
+@keyframes lpShimmer {
+  100% { left: 150%; }
+}
+
+/* Scale In */
+.lp-scale-in {
+  opacity: 0;
+  transform: scale(0.95);
+  animation: lpScaleIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes lpScaleIn {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ============================================
+   FEATURE GRID
+   ============================================ */
+.lp-feature-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .lp-feature-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .lp-feature-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .lp-feature-span-2 {
+    grid-column: span 2;
+  }
+}
+
+/* ============================================
+   STATS
+   ============================================ */
+.lp-stat-value {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--lp-black);
+}
+
+.lp-stat-value-blue {
+  color: var(--lp-blue-dark);
+}
+
+/* ============================================
+   DIVIDERS
+   ============================================ */
+.lp-divider {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--lp-gray-200), transparent);
+}
+
+/* ============================================
+   SECTION BACKGROUNDS
+   ============================================ */
+.lp-bg-subtle {
+  background: var(--lp-off-white);
+}
+
+.lp-bg-dark {
+  background: var(--lp-black);
+  color: var(--lp-white);
+}
+
+.lp-bg-dark .lp-heading {
+  color: var(--lp-white);
+}
+
+.lp-bg-dark .lp-text {
+  color: var(--lp-gray-400);
+}
+
+.lp-bg-gradient {
+  background: linear-gradient(135deg, var(--lp-blue-lighter) 0%, var(--lp-white) 50%, var(--lp-off-white) 100%);
+}
+
+/* ============================================
+   PRICING CARD
+   ============================================ */
+.lp-pricing-popular {
+  position: relative;
+  border: 2px solid var(--lp-blue);
+  box-shadow: var(--lp-shadow-blue);
+}
+
+.lp-pricing-popular::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 26px;
+  background: linear-gradient(135deg, var(--lp-blue-light), var(--lp-blue));
+  z-index: -1;
+  opacity: 0.1;
+}
+
+/* ============================================
+   TESTIMONIAL CAROUSEL
+   ============================================ */
+.lp-carousel {
+  display: flex;
+  gap: 1.5rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 1rem;
+  margin: -1rem;
+}
+
+.lp-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.lp-carousel-item {
+  flex: 0 0 calc(100% - 2rem);
+  scroll-snap-align: center;
+}
+
+@media (min-width: 768px) {
+  .lp-carousel-item {
+    flex: 0 0 calc(50% - 1rem);
+  }
+}
+
+@media (min-width: 1024px) {
+  .lp-carousel-item {
+    flex: 0 0 calc(33.333% - 1rem);
+  }
+}
+
+/* ============================================
+   STEP CONNECTOR
+   ============================================ */
+.lp-steps {
+  position: relative;
+}
+
+.lp-steps::before {
+  content: '';
+  position: absolute;
+  top: 28px;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: linear-gradient(90deg, var(--lp-gray-200), var(--lp-blue-light), var(--lp-gray-200));
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .lp-steps::before {
+    display: block;
+  }
+}
+
+.lp-step-number {
+  font-family: var(--font-display);
+  font-size: 4rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--lp-blue-lighter);
+  transition: color 0.3s ease;
+}
+
+.lp-step:hover .lp-step-number {
+  color: var(--lp-blue-light);
+}
+
+/* ============================================
+   FLOATING ELEMENTS
+   ============================================ */
+.lp-floating-badge {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--lp-white);
+  border-radius: 100px;
+  box-shadow: var(--lp-shadow-lg);
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* ============================================
+   RESPONSIVE UTILITIES
+   ============================================ */
+@media (max-width: 767px) {
+  .lp-hide-mobile {
+    display: none !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .lp-hide-desktop {
+    display: none !important;
+  }
+}
+
+/* ============================================
+   ACCESSIBILITY
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  .lp-fade-in,
+  .lp-scale-in,
+  .lp-float,
+  .lp-float-delayed,
+  .lp-shimmer::after,
+  .lp-pulse-ring::before {
+    animation: none;
+  }
+
+  .lp-fade-in,
+  .lp-scale-in {
+    opacity: 1;
+    transform: none;
+  }
+
+  .lp-card:hover,
+  .lp-btn:hover {
+    transform: none;
+  }
+}
+
+.lp-btn:focus-visible,
+.lp-card:focus-visible {
+  outline: 2px solid var(--lp-blue);
+  outline-offset: 2px;
+}
+
+/* ============================================
+   CUSTOM SCROLLBAR
+   ============================================ */
+.landing-page::-webkit-scrollbar {
+  width: 8px;
+}
+
+.landing-page::-webkit-scrollbar-track {
+  background: var(--lp-off-white);
+}
+
+.landing-page::-webkit-scrollbar-thumb {
+  background: var(--lp-gray-300);
+  border-radius: 4px;
+}
+
+.landing-page::-webkit-scrollbar-thumb:hover {
+  background: var(--lp-blue);
+}
+
+/* ============================================
+   DEMO CARD SPECIAL STYLES
+   ============================================ */
+.lp-demo-card {
+  background: var(--lp-white);
+  border: 1px solid var(--lp-gray-100);
+  border-radius: 24px;
+  box-shadow: var(--lp-shadow-xl);
+  overflow: hidden;
+}
+
+.lp-demo-header {
+  padding: 1rem 1.5rem;
+  background: var(--lp-off-white);
+  border-bottom: 1px solid var(--lp-gray-100);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.lp-demo-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.lp-demo-content {
+  padding: 1.5rem;
+}
+
+/* Message Bubbles */
+.lp-message {
+  max-width: 85%;
+  padding: 1rem 1.25rem;
+  border-radius: 20px;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.lp-message-user {
+  background: var(--lp-off-white);
+  color: var(--lp-black);
+  border-bottom-left-radius: 4px;
+  margin-right: auto;
+}
+
+.lp-message-ai {
+  background: var(--lp-blue);
+  color: var(--lp-white);
+  border-bottom-right-radius: 4px;
+  margin-left: auto;
+}
+
+/* ============================================
+   CTA SECTION
+   ============================================ */
+.lp-cta-gradient {
+  background: linear-gradient(135deg, var(--lp-black) 0%, var(--lp-black-soft) 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.lp-cta-gradient::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -25%;
+  width: 60%;
+  height: 150%;
+  background: radial-gradient(ellipse, var(--lp-blue-glow-strong) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.lp-cta-gradient::after {
+  content: '';
+  position: absolute;
+  bottom: -50%;
+  left: -25%;
+  width: 60%;
+  height: 150%;
+  background: radial-gradient(ellipse, rgba(96, 165, 250, 0.1) 0%, transparent 60%);
+  pointer-events: none;
+}
