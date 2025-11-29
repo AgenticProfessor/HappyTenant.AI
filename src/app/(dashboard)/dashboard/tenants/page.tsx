@@ -37,11 +37,14 @@ import {
   Clock,
 } from 'lucide-react';
 import { mockTenants, mockLeases, mockUnits, getPropertyById } from '@/data/mock-data';
+import { useStewardContext } from '@/hooks/use-steward-context';
 
 export default function TenantsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+
+
 
   const filteredTenants = mockTenants.filter((tenant) => {
     const matchesSearch =
@@ -66,6 +69,18 @@ export default function TenantsPage() {
 
   const activeTenants = mockTenants.filter((t) => t.status === 'active').length;
   const pendingTenants = mockTenants.filter((t) => t.status === 'pending').length;
+
+  useStewardContext({
+    type: 'page',
+    name: 'tenants-list',
+    description: 'List of all tenants',
+    data: {
+      totalTenants: mockTenants.length,
+      activeTenants,
+      pendingTenants,
+    },
+    url: '/dashboard/tenants',
+  });
 
   return (
     <div className="space-y-6">
@@ -224,7 +239,7 @@ export default function TenantsPage() {
                     <Badge
                       variant={
                         tenant.status === 'active' ? 'default' :
-                        tenant.status === 'pending' ? 'secondary' : 'outline'
+                          tenant.status === 'pending' ? 'secondary' : 'outline'
                       }
                     >
                       {tenant.status}
@@ -347,7 +362,7 @@ export default function TenantsPage() {
                       <Badge
                         variant={
                           tenant.status === 'active' ? 'default' :
-                          tenant.status === 'pending' ? 'secondary' : 'outline'
+                            tenant.status === 'pending' ? 'secondary' : 'outline'
                         }
                       >
                         {tenant.status}

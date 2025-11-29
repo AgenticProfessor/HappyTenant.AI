@@ -37,6 +37,7 @@ import { AddPropertyDialog } from '@/components/dashboard/AddPropertyDialog';
 import { AddTenantDialog } from '@/components/dashboard/AddTenantDialog';
 import { RecordPaymentDialog } from '@/components/dashboard/RecordPaymentDialog';
 import { SendMessageDialog } from '@/components/dashboard/SendMessageDialog';
+import { useStewardContext } from '@/hooks/use-steward-context';
 
 // Type definitions
 interface Property {
@@ -98,6 +99,22 @@ interface Message {
 
 export default function DashboardPage() {
   const stats = mockDashboardStats;
+
+  useStewardContext({
+    type: 'page',
+    name: 'dashboard-overview',
+    description: 'Main dashboard overview showing key performance indicators and recent activity',
+    data: {
+      stats,
+      kpiSummary: {
+        revenue: stats.totalRevenue,
+        properties: stats.totalProperties,
+        units: stats.totalUnits,
+        occupancy: stats.occupiedUnits / stats.totalUnits,
+      }
+    },
+    url: '/dashboard',
+  });
 
   // Local state for data (persists until page refresh)
   const [properties, setProperties] = useState<Property[]>(initialProperties);
@@ -253,8 +270,8 @@ export default function DashboardPage() {
                           insight.priority === 'high'
                             ? 'destructive'
                             : insight.priority === 'medium'
-                            ? 'default'
-                            : 'secondary'
+                              ? 'default'
+                              : 'secondary'
                         }
                         className="text-xs"
                       >
@@ -322,9 +339,8 @@ export default function DashboardPage() {
                     className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                        tx.status === 'completed' ? 'bg-green-100' : tx.status === 'pending' ? 'bg-amber-100' : 'bg-red-100'
-                      }`}>
+                      <div className={`h-8 w-8 rounded-full flex items-center justify-center ${tx.status === 'completed' ? 'bg-green-100' : tx.status === 'pending' ? 'bg-amber-100' : 'bg-red-100'
+                        }`}>
                         {tx.status === 'completed' ? (
                           <CheckCircle2 className="h-4 w-4 text-green-600" />
                         ) : tx.status === 'pending' ? (
@@ -341,9 +357,8 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className={`text-sm font-semibold ${
-                        tx.type === 'income' ? 'text-green-600' : 'text-red-600'
-                      }`}>
+                      <p className={`text-sm font-semibold ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'
+                        }`}>
                         {tx.type === 'income' ? '+' : '-'}${tx.amount.toLocaleString()}
                       </p>
                       <Badge
@@ -385,14 +400,12 @@ export default function DashboardPage() {
                     className="flex items-center justify-between p-3 rounded-lg border"
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                        request.priority === 'high' ? 'bg-red-100' :
+                      <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${request.priority === 'high' ? 'bg-red-100' :
                         request.priority === 'normal' ? 'bg-amber-100' : 'bg-blue-100'
-                      }`}>
-                        <Wrench className={`h-5 w-5 ${
-                          request.priority === 'high' ? 'text-red-600' :
+                        }`}>
+                        <Wrench className={`h-5 w-5 ${request.priority === 'high' ? 'text-red-600' :
                           request.priority === 'normal' ? 'text-amber-600' : 'text-blue-600'
-                        }`} />
+                          }`} />
                       </div>
                       <div>
                         <p className="text-sm font-medium">{request.title}</p>
@@ -405,7 +418,7 @@ export default function DashboardPage() {
                       <Badge
                         variant={
                           request.status === 'open' ? 'destructive' :
-                          request.status === 'in_progress' ? 'default' : 'secondary'
+                            request.status === 'in_progress' ? 'default' : 'secondary'
                         }
                       >
                         {request.status.replace('_', ' ')}

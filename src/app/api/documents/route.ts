@@ -7,19 +7,18 @@ import { z } from 'zod'
 const documentSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   type: z.enum([
-    'LEASE',
-    'ADDENDUM',
-    'APPLICATION',
+    'LEASE_AGREEMENT',
+    'LEASE_ADDENDUM',
+    'RENTAL_APPLICATION',
     'ID_DOCUMENT',
-    'PROOF_OF_INCOME',
-    'INSPECTION_REPORT',
-    'MOVE_IN_CHECKLIST',
-    'MOVE_OUT_CHECKLIST',
+    'INCOME_VERIFICATION',
+    'SCREENING_REPORT',
+    'MOVE_IN_INSPECTION',
+    'MOVE_OUT_INSPECTION',
+    'PAYMENT_RECEIPT',
+    'INSURANCE_CERTIFICATE',
     'NOTICE',
     'INVOICE',
-    'RECEIPT',
-    'INSURANCE',
-    'TAX_DOCUMENT',
     'PHOTO',
     'OTHER'
   ]),
@@ -266,12 +265,15 @@ export async function POST(request: Request) {
     // Create document record
     const document = await prisma.document.create({
       data: {
+        organizationId: user.organizationId,
         name: data.name,
+        fileName: data.name, // Using name as filename for simplicity
         type: data.type,
         description: data.description,
         fileUrl: data.fileUrl,
-        fileSize: data.fileSize,
-        mimeType: data.mimeType,
+        storageKey: data.fileUrl, // Using URL as storage key
+        fileSize: data.fileSize ?? 0,
+        mimeType: data.mimeType ?? 'application/octet-stream',
         propertyId: data.propertyId,
         unitId: data.unitId,
         tenantId: data.tenantId,
@@ -280,10 +282,9 @@ export async function POST(request: Request) {
         maintenanceRequestId: data.maintenanceRequestId,
         vendorId: data.vendorId,
         expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined,
-        isSharedWithTenant: data.isSharedWithTenant,
+        isPublic: data.isSharedWithTenant ?? false,
         tags: data.tags || [],
-        uploadedById: userId,
-        uploadedAt: new Date(),
+        uploadedByUserId: userId,
       },
       include: {
         property: true,

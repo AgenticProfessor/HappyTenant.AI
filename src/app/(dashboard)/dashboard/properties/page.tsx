@@ -28,10 +28,23 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { mockProperties, mockUnits } from '@/data/mock-data';
+import { useStewardContext } from '@/hooks/use-steward-context';
 
 export default function PropertiesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string | null>(null);
+
+  useStewardContext({
+    type: 'page',
+    name: 'properties-list',
+    description: 'List of all properties managed by the user',
+    data: {
+      totalProperties: mockProperties.length,
+      totalUnits: mockUnits.length,
+      occupancyRate: Math.round((mockUnits.filter((u) => u.status === 'occupied').length / mockUnits.length) * 100),
+    },
+    url: '/dashboard/properties',
+  });
 
   const filteredProperties = mockProperties.filter((property) => {
     const matchesSearch = property.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

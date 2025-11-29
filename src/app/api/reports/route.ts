@@ -1,8 +1,10 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getReportsByCategory } from '@/lib/reports/definitions'
+import type { ReportsListResponse, ReportListItem } from '@/lib/reports/types'
 
-// GET /api/reports - Generate various financial reports
+// GET /api/reports - List all available reports with favorites OR generate a legacy report
 export async function GET(request: Request) {
   try {
     const { userId } = await auth()
@@ -22,7 +24,13 @@ export async function GET(request: Request) {
 
     // Get query params for report type and date range
     const { searchParams } = new URL(request.url)
-    const reportType = searchParams.get('type') || 'overview'
+    const reportType = searchParams.get('type')
+
+    // If no type is specified, return the list of available reports
+    if (!reportType) {
+      return await listAvailableReports(userId)
+    }
+
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
     const propertyId = searchParams.get('propertyId')
@@ -62,6 +70,47 @@ export async function GET(request: Request) {
       { status: 500 }
     )
   }
+}
+
+// List all available reports with user favorites
+async function listAvailableReports(userId: string): Promise<NextResponse> {
+  // Get user favorites from database
+  let favoriteTypes: string[] = []
+  try {
+    const favorites = await prisma.userReportFavorite.findMany({
+      where: { userId },
+      select: { reportType: true },
+    })
+    favoriteTypes = favorites.map((f) => f.reportType)
+  } catch {
+    // Table might not exist yet, continue with empty favorites
+    console.log('UserReportFavorite table not found, using empty favorites')
+  }
+
+  // Get all report categories with favorite status
+  const categories = getReportsByCategory()
+  const categoriesWithFavorites = categories.map((cat) => ({
+    ...cat,
+    reports: cat.reports.map((report) => ({
+      ...report,
+      isFavorite: favoriteTypes.includes(report.type),
+    })),
+  }))
+
+  // Flatten all reports for the response
+  const allReports: ReportListItem[] = []
+  categoriesWithFavorites.forEach((cat) => {
+    cat.reports.forEach((report) => {
+      allReports.push(report)
+    })
+  })
+
+  const response: ReportsListResponse = {
+    reports: allReports,
+    categories: categoriesWithFavorites,
+  }
+
+  return NextResponse.json(response)
 }
 
 // Overview Dashboard Report
@@ -139,7 +188,7 @@ async function generateOverviewReport(organizationId: string, propertyId: string
   // Get outstanding balance
   const charges = await prisma.charge.findMany({
     where: {
-      status: { in: ['DUE', 'PARTIAL', 'OVERDUE'] },
+      status: { in: ['DUE', 'PARTIAL'] },
       lease: {
         unit: {
           property: {
@@ -239,7 +288,7 @@ async function generateRentRollReport(organizationId: string, propertyId: string
       },
       charges: {
         where: {
-          status: { in: ['DUE', 'PARTIAL', 'OVERDUE'] },
+          status: { in: ['DUE', 'PARTIAL'] },
         },
       },
     },
@@ -384,7 +433,8 @@ async function generateIncomeReport(
 async function generateDelinquencyReport(organizationId: string, propertyId: string | null) {
   const overdueCharges = await prisma.charge.findMany({
     where: {
-      status: 'OVERDUE',
+      status: { in: ['DUE', 'PARTIAL'] },
+      dueDate: { lt: new Date() },
       lease: {
         unit: {
           property: {
@@ -433,9 +483,9 @@ async function generateDelinquencyReport(organizationId: string, propertyId: str
     return {
       propertyName: charge.lease.unit.property.name,
       unitNumber: charge.lease.unit.unitNumber,
-      tenantName: `${charge.tenant.firstName} ${charge.tenant.lastName}`,
-      tenantEmail: charge.tenant.email,
-      tenantPhone: charge.tenant.phone,
+      tenantName: charge.tenant ? `${charge.tenant.firstName} ${charge.tenant.lastName}` : 'Unknown',
+      tenantEmail: charge.tenant?.email || '',
+      tenantPhone: charge.tenant?.phone || '',
       chargeType: charge.type,
       chargeDescription: charge.description,
       originalAmount: Number(charge.amount),
@@ -550,7 +600,7 @@ async function generateMaintenanceReport(
           },
         },
       },
-      vendor: {
+      assignedToVendor: {
         select: {
           id: true,
           name: true,
@@ -575,12 +625,12 @@ async function generateMaintenanceReport(
   })
 
   // Calculate average completion time for completed requests
-  const completedRequests = requests.filter(r => r.status === 'COMPLETED' && r.completedAt)
+  const completedRequests = requests.filter(r => r.status === 'COMPLETED' && r.resolvedAt)
   const avgCompletionHours = completedRequests.length > 0
     ? completedRequests.reduce((sum, r) => {
-        const hours = (new Date(r.completedAt!).getTime() - new Date(r.createdAt).getTime()) / (1000 * 60 * 60)
-        return sum + hours
-      }, 0) / completedRequests.length
+      const hours = (new Date(r.resolvedAt!).getTime() - new Date(r.createdAt).getTime()) / (1000 * 60 * 60)
+      return sum + hours
+    }, 0) / completedRequests.length
     : 0
 
   return NextResponse.json({
@@ -595,11 +645,11 @@ async function generateMaintenanceReport(
         status: r.status,
         propertyName: r.unit.property.name,
         unitNumber: r.unit.unitNumber,
-        vendorName: r.vendor?.name,
+        vendorName: r.assignedToVendor?.name,
         estimatedCost: Number(r.estimatedCost || 0),
         actualCost: Number(r.actualCost || 0),
         createdAt: r.createdAt,
-        completedAt: r.completedAt,
+        completedAt: r.resolvedAt,
       })),
       summary: {
         totalRequests: requests.length,

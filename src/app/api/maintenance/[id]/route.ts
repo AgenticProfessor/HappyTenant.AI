@@ -14,7 +14,7 @@ const maintenanceUpdateSchema = z.object({
     'COMPLETED',
     'CANCELLED'
   ]).optional(),
-  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
+  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'EMERGENCY']).optional(),
   assignedToId: z.string().optional(),
   vendorId: z.string().optional(),
   scheduledDate: z.string().optional(),
@@ -65,24 +65,10 @@ export async function GET(request: Request, { params }: RouteParams) {
           },
         },
         tenant: true,
-        assignedTo: true,
-        vendor: true,
-        workOrders: {
-          include: {
-            vendor: true,
-          },
-          orderBy: { createdAt: 'desc' },
-        },
-        comments: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-              },
-            },
-          },
+        assignedToUser: true,
+        assignedToVendor: true,
+        documents: true,
+        conversations: {
           orderBy: { createdAt: 'desc' },
         },
       },
@@ -99,15 +85,15 @@ export async function GET(request: Request, { params }: RouteParams) {
     const ageInDays = Math.floor(ageInHours / 24)
 
     let responseTime: number | null = null
-    if (maintenanceRequest.acknowledgedAt) {
-      const acknowledgedAt = new Date(maintenanceRequest.acknowledgedAt)
-      responseTime = Math.floor((acknowledgedAt.getTime() - createdAt.getTime()) / (1000 * 60 * 60))
-    }
+    // if (maintenanceRequest.acknowledgedAt) {
+    //   const acknowledgedAt = new Date(maintenanceRequest.acknowledgedAt)
+    //   responseTime = Math.floor((acknowledgedAt.getTime() - createdAt.getTime()) / (1000 * 60 * 60))
+    // }
 
     let completionTime: number | null = null
-    if (maintenanceRequest.completedAt) {
-      const completedAt = new Date(maintenanceRequest.completedAt)
-      completionTime = Math.floor((completedAt.getTime() - createdAt.getTime()) / (1000 * 60 * 60))
+    if (maintenanceRequest.resolvedAt) {
+      const resolvedAt = new Date(maintenanceRequest.resolvedAt)
+      completionTime = Math.floor((resolvedAt.getTime() - createdAt.getTime()) / (1000 * 60 * 60))
     }
 
     return NextResponse.json({
@@ -217,11 +203,11 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       where: { id },
       data: {
         ...(data.status && { status: data.status }),
-        ...(data.status === 'ACKNOWLEDGED' && !existingRequest.acknowledgedAt && {
-          acknowledgedAt: new Date(),
+        ...(data.status === 'ACKNOWLEDGED' && {
+          // acknowledgedAt: new Date(), // Field does not exist in schema
         }),
-        ...(data.status === 'COMPLETED' && !existingRequest.completedAt && {
-          completedAt: new Date(),
+        ...(data.status === 'COMPLETED' && !existingRequest.resolvedAt && {
+          resolvedAt: new Date(),
         }),
         ...(data.priority && { priority: data.priority }),
         ...(data.assignedToId !== undefined && { assignedToId: data.assignedToId || null }),
@@ -242,8 +228,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
           },
         },
         tenant: true,
-        assignedTo: true,
-        vendor: true,
+        assignedToUser: true,
+        assignedToVendor: true,
       },
     })
 
@@ -306,7 +292,6 @@ export async function DELETE(request: Request, { params }: RouteParams) {
             property: true,
           },
         },
-        workOrders: true,
       },
     })
 
@@ -322,13 +307,13 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       )
     }
 
-    // Check for work orders
-    if (existingRequest.workOrders.length > 0) {
-      return NextResponse.json(
-        { error: 'Cannot delete maintenance request with work orders' },
-        { status: 400 }
-      )
-    }
+    // Check for work orders - removed as not in schema
+    // if (existingRequest.workOrders.length > 0) {
+    //   return NextResponse.json(
+    //     { error: 'Cannot delete maintenance request with work orders' },
+    //     { status: 400 }
+    //   )
+    // }
 
     // Delete request
     await prisma.maintenanceRequest.delete({

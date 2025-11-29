@@ -87,7 +87,7 @@ export async function GET(request: Request) {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { performedAt: 'desc' },
       take: limit,
       skip: offset,
     })

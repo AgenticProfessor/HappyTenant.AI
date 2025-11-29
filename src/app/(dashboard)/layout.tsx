@@ -32,6 +32,7 @@ import {
 import { mockUser, mockOrganization } from '@/data/mock-data';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { Sidebar } from '@/components/dashboard/Sidebar';
+import { StewardProvider, StewardFloatingWidget } from '@/components/steward';
 
 export default function DashboardLayout({
   children,
@@ -41,6 +42,7 @@ export default function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
+    <StewardProvider>
     <div className="min-h-screen bg-muted/30">
       <SkipLink href="#main-content" />
 
@@ -196,6 +198,10 @@ export default function DashboardLayout({
           {children}
         </main>
       </div>
+
+      {/* Steward AI Assistant */}
+      <StewardFloatingWidget />
     </div>
+    </StewardProvider>
   );
 }

@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/ui/theme-provider";
 import { QueryProvider } from "@/providers/query-provider";
 import { AuthProvider } from "@/contexts/auth-context";
 import { ClerkProvider } from "@clerk/nextjs";
+import { StewardProvider } from "@/components/steward/StewardContext";
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -40,10 +41,10 @@ export default function RootLayout({
       </head>
       <body className={`${plusJakarta.variable} font-sans antialiased`}>
         <ClerkProvider
-            afterSignOutUrl="/"
-            signInFallbackRedirectUrl="/dashboard"
-            signUpFallbackRedirectUrl="/dashboard"
-          >
+          afterSignOutUrl="/"
+          signInFallbackRedirectUrl="/dashboard"
+          signUpFallbackRedirectUrl="/dashboard"
+        >
           <QueryProvider>
             <AuthProvider>
               <ThemeProvider
@@ -52,8 +53,10 @@ export default function RootLayout({
                 enableSystem
                 disableTransitionOnChange
               >
-                {children}
-                <Toaster />
+                <StewardProvider>
+                  {children}
+                  <Toaster />
+                </StewardProvider>
               </ThemeProvider>
             </AuthProvider>
           </QueryProvider>

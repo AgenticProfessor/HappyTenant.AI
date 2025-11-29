@@ -6,22 +6,18 @@ import { z } from 'zod'
 // Validation schema for updating an application status
 const applicationUpdateSchema = z.object({
   status: z.enum([
-    'SUBMITTED',
+    'NEW',
     'UNDER_REVIEW',
-    'PENDING_SCREENING',
-    'SCREENING_COMPLETE',
+    'SCREENING_IN_PROGRESS',
     'APPROVED',
-    'CONDITIONALLY_APPROVED',
-    'DENIED',
+    'DECLINED',
+    'WAITLIST',
     'WITHDRAWN',
-    'LEASE_OFFERED',
     'LEASE_SIGNED'
   ]).optional(),
-  reviewNotes: z.string().optional(),
-  denialReason: z.string().optional(),
-  conditionalApprovalTerms: z.string().optional(),
-  applicationFeeReceived: z.boolean().optional(),
-  applicationFeePaidAt: z.string().optional(),
+  notes: z.string().optional(),
+  decisionReason: z.string().optional(),
+  applicationFeePaid: z.boolean().optional(),
 })
 
 type RouteParams = {
@@ -62,7 +58,7 @@ export async function GET(request: Request, { params }: RouteParams) {
             property: true,
           },
         },
-        screeningResult: true,
+        screeningResults: true,
         documents: {
           orderBy: { uploadedAt: 'desc' },
         },
@@ -79,20 +75,22 @@ export async function GET(request: Request, { params }: RouteParams) {
     const monthlyRent = Number(unit.marketRent)
 
     if (application.monthlyIncome) {
-      const incomeToRentRatio = application.monthlyIncome / monthlyRent
+      const incomeToRentRatio = Number(application.monthlyIncome) / monthlyRent
       if (incomeToRentRatio >= 3) score += 30
       else if (incomeToRentRatio >= 2.5) score += 20
       else if (incomeToRentRatio >= 2) score += 10
     }
 
-    if (application.employmentStatus === 'EMPLOYED_FULL_TIME') score += 20
-    else if (application.employmentStatus === 'EMPLOYED_PART_TIME') score += 10
-    else if (application.employmentStatus === 'SELF_EMPLOYED') score += 15
+    // Score based on employment info
+    if (application.employerName && application.jobTitle) {
+      score += 20 // Has verifiable employment
+    }
 
-    if (application.rentalHistory && Array.isArray(application.rentalHistory)) {
-      const historyLength = (application.rentalHistory as Array<unknown>).length
-      if (historyLength >= 2) score += 20
-      else if (historyLength >= 1) score += 10
+    // Score based on current address info (rental history proxy)
+    if (application.currentAddress && application.currentLandlordName) {
+      score += 20 // Has verifiable rental history
+    } else if (application.currentAddress) {
+      score += 10
     }
 
     if (application.references && Array.isArray(application.references)) {
@@ -101,7 +99,8 @@ export async function GET(request: Request, { params }: RouteParams) {
       else if (refsLength >= 1) score += 5
     }
 
-    if (application.consentToBackgroundCheck && application.consentToCreditCheck) {
+    // Score based on screening results
+    if (application.screeningResults && application.screeningResults.length > 0) {
       score += 10
     }
 
@@ -109,10 +108,10 @@ export async function GET(request: Request, { params }: RouteParams) {
       application,
       analysis: {
         score: Math.min(score, 100),
-        incomeToRentRatio: application.monthlyIncome ? (application.monthlyIncome / monthlyRent).toFixed(2) : null,
-        hasRentalHistory: application.rentalHistory && Array.isArray(application.rentalHistory) && (application.rentalHistory as Array<unknown>).length > 0,
+        incomeToRentRatio: application.monthlyIncome ? (Number(application.monthlyIncome) / monthlyRent).toFixed(2) : null,
+        hasRentalHistory: Boolean(application.currentAddress && application.currentLandlordName),
         hasReferences: application.references && Array.isArray(application.references) && (application.references as Array<unknown>).length > 0,
-        hasScreeningConsent: application.consentToBackgroundCheck && application.consentToCreditCheck,
+        hasScreeningResults: application.screeningResults && application.screeningResults.length > 0,
       },
     })
   } catch (error) {
@@ -184,21 +183,17 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       const updatedApplication = await tx.application.update({
         where: { id },
         data: {
-          ...(data.status && { status: data.status }),
-          ...(data.status === 'UNDER_REVIEW' && !existingApplication.reviewedAt && {
-            reviewedAt: new Date(),
-            reviewedBy: user.id,
+          ...(data.status && {
+            status: data.status,
+            ...(data.status === 'APPROVED' || data.status === 'DECLINED' ? {
+              decidedAt: new Date(),
+              decidedByUserId: user.id,
+            } : {}),
           }),
-          ...(data.reviewNotes !== undefined && { reviewNotes: data.reviewNotes }),
-          ...(data.denialReason !== undefined && { denialReason: data.denialReason }),
-          ...(data.conditionalApprovalTerms !== undefined && {
-            conditionalApprovalTerms: data.conditionalApprovalTerms
-          }),
-          ...(data.applicationFeeReceived !== undefined && {
-            applicationFeeReceived: data.applicationFeeReceived
-          }),
-          ...(data.applicationFeePaidAt !== undefined && {
-            applicationFeePaidAt: data.applicationFeePaidAt ? new Date(data.applicationFeePaidAt) : null
+          ...(data.notes !== undefined && { notes: data.notes }),
+          ...(data.decisionReason !== undefined && { decisionReason: data.decisionReason }),
+          ...(data.applicationFeePaid !== undefined && {
+            applicationFeePaid: data.applicationFeePaid
           }),
         },
         include: {
@@ -207,7 +202,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
               property: true,
             },
           },
-          screeningResult: true,
+          screeningResults: true,
         },
       })
 
@@ -215,13 +210,13 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       if (data.status) {
         // If approved and this is the only active application, keep unit as UNDER_APPLICATION
         // If denied/withdrawn, check if there are other active applications
-        if (data.status === 'DENIED' || data.status === 'WITHDRAWN') {
+        if (data.status === 'DECLINED' || data.status === 'WITHDRAWN') {
           const otherActiveApplications = await tx.application.count({
             where: {
               unitId: existingApplication.unitId,
               id: { not: id },
               status: {
-                notIn: ['DENIED', 'WITHDRAWN', 'LEASE_SIGNED'],
+                notIn: ['DECLINED', 'WITHDRAWN', 'LEASE_SIGNED'],
               },
             },
           })
@@ -253,22 +248,14 @@ export async function PATCH(request: Request, { params }: RouteParams) {
                 lastName: existingApplication.lastName,
                 email: existingApplication.email,
                 phone: existingApplication.phone,
-                dateOfBirth: existingApplication.dateOfBirth,
-                driversLicense: existingApplication.driversLicense,
-                driversLicenseState: existingApplication.driversLicenseState,
-                employmentStatus: existingApplication.employmentStatus,
                 employerName: existingApplication.employerName,
-                employerPhone: existingApplication.employerPhone,
                 jobTitle: existingApplication.jobTitle,
                 monthlyIncome: existingApplication.monthlyIncome,
                 hasPets: existingApplication.hasPets,
-                petDetails: existingApplication.pets ? JSON.stringify(existingApplication.pets) : null,
+                petDetails: existingApplication.petDetails,
                 hasVehicles: existingApplication.hasVehicles,
-                vehicleDetails: existingApplication.vehicles ? JSON.stringify(existingApplication.vehicles) : null,
-                householdMembers: existingApplication.additionalOccupants as Record<string, unknown>[] | undefined,
-                emergencyContactName: existingApplication.emergencyContactName,
-                emergencyContactPhone: existingApplication.emergencyContactPhone,
-                emergencyContactRelation: existingApplication.emergencyContactRelation,
+                vehicleDetails: existingApplication.vehicleDetails,
+                householdMembers: existingApplication.coApplicants ?? undefined,
                 screeningStatus: 'PASSED',
                 isActive: true,
               },
@@ -278,7 +265,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
           // Link application to the created tenant
           await tx.application.update({
             where: { id },
-            data: { convertedToTenantId: tenant.id },
+            data: { tenantId: tenant.id },
           })
         }
       }
@@ -371,7 +358,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
         where: {
           unitId: existingApplication.unitId,
           status: {
-            notIn: ['DENIED', 'WITHDRAWN', 'LEASE_SIGNED'],
+            notIn: ['DECLINED', 'WITHDRAWN', 'LEASE_SIGNED'],
           },
         },
       })

@@ -39,75 +39,37 @@ export async function GET(request: Request) {
     // Get query params for filtering
     const { searchParams } = new URL(request.url)
     const folder = searchParams.get('folder') || 'inbox' // inbox, sent, all
-    const isRead = searchParams.get('isRead')
-    const propertyId = searchParams.get('propertyId')
-    const tenantId = searchParams.get('tenantId')
     const search = searchParams.get('search')
 
+    // Find conversations where user is a participant
+    const conversations = await prisma.conversation.findMany({
+      where: {
+        participants: {
+          some: {
+            userId: userId,
+          },
+        },
+      },
+      select: { id: true },
+    })
+
+    const conversationIds = conversations.map((c) => c.id)
+
     // Build filter based on folder
-    let where: Record<string, unknown> = {}
+    let where: any = {
+      conversationId: { in: conversationIds },
+    }
 
     if (folder === 'inbox') {
-      // Messages received by this user
-      where = {
-        OR: [
-          { recipientUserId: userId },
-          {
-            recipientTenant: {
-              organizationId: user.organizationId,
-            },
-          },
-        ],
-      }
+      // Messages where sender is NOT the user
+      where.senderUserId = { not: userId }
     } else if (folder === 'sent') {
-      where = {
-        senderUserId: userId,
-      }
-    } else {
-      // All messages in organization
-      where = {
-        OR: [
-          { senderUserId: userId },
-          { recipientUserId: userId },
-          {
-            senderTenant: {
-              organizationId: user.organizationId,
-            },
-          },
-          {
-            recipientTenant: {
-              organizationId: user.organizationId,
-            },
-          },
-        ],
-      }
-    }
-
-    if (isRead !== null && isRead !== undefined) {
-      where.isRead = isRead === 'true'
-    }
-
-    if (propertyId) {
-      where.propertyId = propertyId
-    }
-
-    if (tenantId) {
-      where.OR = [
-        { senderTenantId: tenantId },
-        { recipientTenantId: tenantId },
-      ]
+      // Messages where sender IS the user
+      where.senderUserId = userId
     }
 
     if (search) {
-      where.AND = [
-        where,
-        {
-          OR: [
-            { subject: { contains: search, mode: 'insensitive' } },
-            { content: { contains: search, mode: 'insensitive' } },
-          ],
-        },
-      ]
+      where.content = { contains: search, mode: 'insensitive' }
     }
 
     const messages = await prisma.message.findMany({
@@ -129,32 +91,26 @@ export async function GET(request: Request) {
             email: true,
           },
         },
-        recipientUser: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
-        },
-        recipientTenant: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
-        },
-        property: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        unit: {
-          select: {
-            id: true,
-            unitNumber: true,
+        conversation: {
+          include: {
+            participants: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                  },
+                },
+                tenant: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -162,19 +118,11 @@ export async function GET(request: Request) {
       take: 50,
     })
 
-    // Count unread
-    const unreadCount = await prisma.message.count({
-      where: {
-        recipientUserId: userId,
-        isRead: false,
-      },
-    })
-
     return NextResponse.json({
       messages,
       summary: {
         total: messages.length,
-        unread: unreadCount,
+        unread: 0, // TODO: Calculate unread based on ConversationParticipant
       },
     })
   } catch (error) {
@@ -220,7 +168,6 @@ export async function POST(request: Request) {
     // Verify recipient exists and belongs to organization
     let recipientTenantId: string | undefined
     let recipientUserId: string | undefined
-    let recipientVendorId: string | undefined
 
     if (data.recipientType === 'TENANT') {
       const tenant = await prisma.tenant.findFirst({
@@ -244,34 +191,49 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'User not found' }, { status: 404 })
       }
       recipientUserId = recipientUser.id
-    } else if (data.recipientType === 'VENDOR') {
-      const vendor = await prisma.vendor.findFirst({
-        where: {
-          id: data.recipientId,
+    }
+
+    // Find or create conversation
+    // Simplified logic: find conversation with these two participants
+    // In a real app, we'd need more robust logic to handle multiple conversations
+    let conversation = await prisma.conversation.findFirst({
+      where: {
+        organizationId: user.organizationId,
+        participants: {
+          every: {
+            OR: [
+              { userId: userId },
+              { userId: recipientUserId },
+              { tenantId: recipientTenantId },
+            ],
+          },
+        },
+      },
+    })
+
+    if (!conversation) {
+      conversation = await prisma.conversation.create({
+        data: {
           organizationId: user.organizationId,
+          type: recipientTenantId ? 'LANDLORD_TENANT' : 'INTERNAL',
+          participants: {
+            create: [
+              { userId: userId, role: 'OWNER' },
+              ...(recipientUserId ? [{ userId: recipientUserId }] : []),
+              ...(recipientTenantId ? [{ tenantId: recipientTenantId }] : []),
+            ],
+          },
         },
       })
-      if (!vendor) {
-        return NextResponse.json({ error: 'Vendor not found' }, { status: 404 })
-      }
-      recipientVendorId = vendor.id
     }
 
     // Create message
     const message = await prisma.message.create({
       data: {
+        conversationId: conversation.id,
         senderUserId: userId,
-        recipientTenantId,
-        recipientUserId,
-        recipientVendorId,
-        subject: data.subject,
         content: data.content,
-        propertyId: data.propertyId,
-        unitId: data.unitId,
-        leaseId: data.leaseId,
-        maintenanceRequestId: data.maintenanceRequestId,
-        channel: data.channel,
-        isRead: false,
+        channel: data.channel as any,
       },
       include: {
         senderUser: {
@@ -282,26 +244,18 @@ export async function POST(request: Request) {
             email: true,
           },
         },
-        recipientTenant: true,
-        recipientUser: true,
-        property: true,
-        unit: true,
       },
     })
-
-    // TODO: If sendEmail or sendSms is true, queue notification
-    // This would integrate with email/SMS service in production
 
     // Create notification for recipient
     if (recipientTenantId) {
       await prisma.notification.create({
         data: {
           tenantId: recipientTenantId,
-          type: 'MESSAGE',
+          type: 'NEW_MESSAGE',
           title: data.subject || 'New Message',
-          content: `You have a new message from ${user.firstName} ${user.lastName}`,
-          relatedEntityType: 'message',
-          relatedEntityId: message.id,
+          body: `You have a new message from ${user.firstName} ${user.lastName}`,
+          channels: ['IN_APP', 'EMAIL'],
         },
       })
     }

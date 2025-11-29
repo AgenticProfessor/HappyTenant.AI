@@ -195,23 +195,17 @@ export async function POST(request: Request) {
     const startDate = new Date(data.startDate)
     const endDate = data.endDate ? new Date(data.endDate) : null
 
+    // Check for overlapping leases - simplified query
     const overlappingLeases = await prisma.lease.findMany({
       where: {
         unitId: data.unitId,
         status: { in: ['ACTIVE', 'PENDING_SIGNATURE'] },
+        // Lease starts before or on proposed end (or no end date)
+        // AND lease ends after or on proposed start (or no end date)
+        startDate: { lte: endDate ?? new Date('2099-12-31') },
         OR: [
-          {
-            AND: [
-              { startDate: { lte: startDate } },
-              { endDate: { gte: startDate } },
-            ],
-          },
-          {
-            AND: [
-              { startDate: { lte: endDate || startDate } },
-              { endDate: null },
-            ],
-          },
+          { endDate: { gte: startDate } },
+          { endDate: null },
         ],
       },
     })

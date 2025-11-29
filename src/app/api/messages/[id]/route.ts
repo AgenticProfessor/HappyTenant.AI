@@ -16,33 +16,8 @@ export async function GET(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
-    const message = await prisma.message.findFirst({
-      where: {
-        id,
-        OR: [
-          { senderUserId: userId },
-          { recipientUserId: userId },
-          {
-            senderTenant: {
-              organizationId: user.organizationId,
-            },
-          },
-          {
-            recipientTenant: {
-              organizationId: user.organizationId,
-            },
-          },
-        ],
-      },
+    const message = await prisma.message.findUnique({
+      where: { id },
       include: {
         senderUser: {
           select: {
@@ -60,52 +35,10 @@ export async function GET(request: Request, { params }: RouteParams) {
             email: true,
           },
         },
-        recipientUser: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
-        },
-        recipientTenant: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
-        },
-        recipientVendor: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        property: true,
-        unit: true,
-        lease: true,
-        maintenanceRequest: true,
-        parentMessage: true,
-        replies: {
+        conversation: {
           include: {
-            senderUser: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-              },
-            },
-            senderTenant: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-              },
-            },
+            participants: true,
           },
-          orderBy: { createdAt: 'asc' },
         },
       },
     })
@@ -114,12 +47,17 @@ export async function GET(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Message not found' }, { status: 404 })
     }
 
-    // Mark as read if user is the recipient
-    if (message.recipientUserId === userId && !message.isRead) {
+    // Check if user is a participant
+    const isParticipant = message.conversation.participants.some(p => p.userId === userId)
+    if (!isParticipant) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
+
+    // Mark as read if user is not the sender
+    if (message.senderUserId !== userId && !message.readAt) {
       await prisma.message.update({
         where: { id },
         data: {
-          isRead: true,
           readAt: new Date(),
         },
       })
@@ -145,32 +83,25 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
-    // Check if message exists and user has access
-    const existingMessage = await prisma.message.findFirst({
-      where: {
-        id,
-        OR: [
-          { recipientUserId: userId },
-          {
-            recipientTenant: {
-              organizationId: user.organizationId,
-            },
+    const existingMessage = await prisma.message.findUnique({
+      where: { id },
+      include: {
+        conversation: {
+          include: {
+            participants: true,
           },
-        ],
+        },
       },
     })
 
     if (!existingMessage) {
       return NextResponse.json({ error: 'Message not found' }, { status: 404 })
+    }
+
+    // Check if user is a participant
+    const isParticipant = existingMessage.conversation.participants.some(p => p.userId === userId)
+    if (!isParticipant) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
     const body = await request.json()
@@ -179,7 +110,6 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     const message = await prisma.message.update({
       where: { id },
       data: {
-        isRead: isRead ?? existingMessage.isRead,
         readAt: isRead ? new Date() : null,
       },
       include: {
@@ -191,8 +121,6 @@ export async function PATCH(request: Request, { params }: RouteParams) {
             email: true,
           },
         },
-        recipientTenant: true,
-        recipientUser: true,
       },
     })
 
@@ -239,9 +167,9 @@ export async function DELETE(request: Request, { params }: RouteParams) {
 
     // Delete message and its replies
     await prisma.$transaction(async (tx) => {
-      await tx.message.deleteMany({
-        where: { parentMessageId: id },
-      })
+      // await tx.message.deleteMany({
+      //   where: { parentMessageId: id },
+      // })
       await tx.message.delete({
         where: { id },
       })

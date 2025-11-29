@@ -71,7 +71,7 @@ interface CalculatorCard {
   id: CalculatorType;
   name: string;
   description: string;
-  icon: React.ElementType;
+  icon: typeof Calculator;
   category: 'financial' | 'legal' | 'ai';
   badge?: 'AI' | 'Popular' | 'New';
 }

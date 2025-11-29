@@ -118,25 +118,20 @@ export async function GET(request: Request) {
             phone: true,
           },
         },
-        assignedTo: {
+        assignedToUser: {
           select: {
             id: true,
             firstName: true,
             lastName: true,
-            email: true,
+            avatarUrl: true,
           },
         },
-        vendor: {
+        assignedToVendor: {
           select: {
             id: true,
             name: true,
-            phone: true,
             email: true,
           },
-        },
-        workOrders: {
-          orderBy: { createdAt: 'desc' },
-          take: 1,
         },
       },
       orderBy: [
@@ -150,14 +145,14 @@ export async function GET(request: Request) {
       !['COMPLETED', 'CANCELLED'].includes(r.status)
     ).length
     const urgentCount = requests.filter(r =>
-      r.priority === 'URGENT' && !['COMPLETED', 'CANCELLED'].includes(r.status)
+      r.priority === 'EMERGENCY' && !['COMPLETED', 'CANCELLED'].includes(r.status)
     ).length
     const completedThisMonth = requests.filter(r => {
-      const completedAt = r.completedAt
-      if (!completedAt) return false
+      const resolvedAt = r.resolvedAt
+      if (!resolvedAt) return false
       const now = new Date()
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-      return new Date(completedAt) >= startOfMonth
+      return new Date(resolvedAt) >= startOfMonth
     }).length
 
     return NextResponse.json({
@@ -251,12 +246,12 @@ export async function POST(request: Request) {
       data: {
         unitId: data.unitId,
         tenantId: data.tenantId,
-        category: data.category,
-        priority: data.priority,
+        category: data.category === 'LOCK_KEY' ? 'LOCKS_SECURITY' : (data.category as any),
+        priority: data.priority === 'URGENT' ? 'EMERGENCY' : (data.priority as any),
         title: data.title,
         description: data.description,
-        permissionToEnter: data.permissionToEnter,
-        preferredSchedule: data.preferredSchedule,
+        entryPermissionGranted: data.permissionToEnter,
+        // preferredSchedule: data.preferredSchedule, // Field does not exist
         photos: data.photos || [],
         status: 'SUBMITTED',
       },

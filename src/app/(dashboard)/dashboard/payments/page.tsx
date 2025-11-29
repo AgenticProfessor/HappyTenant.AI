@@ -41,6 +41,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { mockTransactions, mockDashboardStats, mockTenants, mockLeases } from '@/data/mock-data';
+import { useStewardContext } from '@/hooks/use-steward-context';
 
 export default function PaymentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -67,6 +68,22 @@ export default function PaymentsPage() {
   const pendingPayments = mockTransactions
     .filter((tx) => tx.status === 'pending')
     .reduce((sum, tx) => sum + tx.amount, 0);
+
+  // Register Steward context
+  useStewardContext({
+    type: 'page',
+    name: 'accounting',
+    description: 'Financial overview including income, expenses, and pending payments',
+    data: {
+      totalIncome,
+      totalExpenses,
+      netIncome: totalIncome - totalExpenses,
+      pendingPayments,
+      collectionRate: stats.collectionRate,
+      outstandingRent: stats.outstandingRent,
+    },
+    url: '/dashboard/payments',
+  });
 
   return (
     <div className="space-y-6">
@@ -325,9 +342,8 @@ function TransactionsTable({ transactions }: { transactions: typeof mockTransact
             <TableRow key={tx.id}>
               <TableCell>
                 <div className="flex items-center gap-3">
-                  <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                    tx.type === 'income' ? 'bg-green-100' : 'bg-red-100'
-                  }`}>
+                  <div className={`h-8 w-8 rounded-full flex items-center justify-center ${tx.type === 'income' ? 'bg-green-100' : 'bg-red-100'
+                    }`}>
                     {tx.type === 'income' ? (
                       <ArrowUpRight className="h-4 w-4 text-green-600" />
                     ) : (
@@ -355,9 +371,8 @@ function TransactionsTable({ transactions }: { transactions: typeof mockTransact
                 </Badge>
               </TableCell>
               <TableCell>
-                <span className={`font-semibold ${
-                  tx.type === 'income' ? 'text-green-600' : 'text-red-600'
-                }`}>
+                <span className={`font-semibold ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'
+                  }`}>
                   {tx.type === 'income' ? '+' : '-'}${tx.amount.toLocaleString()}
                 </span>
               </TableCell>
@@ -365,7 +380,7 @@ function TransactionsTable({ transactions }: { transactions: typeof mockTransact
                 <Badge
                   variant={
                     tx.status === 'completed' ? 'default' :
-                    tx.status === 'pending' ? 'secondary' : 'destructive'
+                      tx.status === 'pending' ? 'secondary' : 'destructive'
                   }
                   className="gap-1"
                 >

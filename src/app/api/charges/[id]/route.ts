@@ -8,7 +8,7 @@ const chargeUpdateSchema = z.object({
   description: z.string().min(1).optional(),
   amount: z.number().min(0).optional(),
   dueDate: z.string().optional(),
-  status: z.enum(['DUE', 'PARTIAL', 'PAID', 'OVERDUE', 'VOID', 'WAIVED']).optional(),
+  status: z.enum(['PENDING', 'DUE', 'PARTIAL', 'PAID', 'WAIVED', 'VOID']).optional(),
   notes: z.string().optional(),
 })
 
@@ -61,7 +61,7 @@ export async function GET(request: Request, { params }: RouteParams) {
           include: {
             payment: true,
           },
-          orderBy: { allocatedAt: 'desc' },
+          orderBy: { createdAt: 'desc' },
         },
       },
     })

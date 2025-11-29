@@ -180,7 +180,7 @@ export async function GET(request: Request) {
             },
           },
         },
-        screeningResult: true,
+        screeningResults: true,
       },
       orderBy: { submittedAt: 'desc' },
     })
@@ -243,7 +243,7 @@ export async function POST(request: Request) {
         unitId: data.unitId,
         email: data.email,
         submittedAt: { gte: thirtyDaysAgo },
-        status: { notIn: ['WITHDRAWN', 'DENIED'] },
+        status: { notIn: ['WITHDRAWN', 'DECLINED'] },
       },
     })
 
@@ -254,7 +254,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // Create application
+    // Create application (only using fields that exist in schema)
     const application = await prisma.application.create({
       data: {
         unitId: data.unitId,
@@ -262,45 +262,32 @@ export async function POST(request: Request) {
         lastName: data.lastName,
         email: data.email,
         phone: data.phone,
-        dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
-        ssn: data.ssn, // Should be encrypted in production
-        driversLicense: data.driversLicense,
-        driversLicenseState: data.driversLicenseState,
+        // Application details
+        desiredMoveInDate: data.desiredMoveInDate ? new Date(data.desiredMoveInDate) : undefined,
+        desiredLeaseTermMonths: data.desiredLeaseTerm,
+        // Employment
+        employerName: data.employerName,
+        jobTitle: data.jobTitle,
+        monthlyIncome: data.monthlyIncome,
+        // Rental history
         currentAddress: data.currentAddress,
-        currentCity: data.currentCity,
-        currentState: data.currentState,
-        currentZip: data.currentZip,
         currentLandlordName: data.currentLandlordName,
         currentLandlordPhone: data.currentLandlordPhone,
         currentRent: data.currentRent,
-        currentMoveInDate: data.currentMoveInDate ? new Date(data.currentMoveInDate) : undefined,
         reasonForMoving: data.reasonForMoving,
-        employmentStatus: data.employmentStatus,
-        employerName: data.employerName,
-        employerPhone: data.employerPhone,
-        employerAddress: data.employerAddress,
-        jobTitle: data.jobTitle,
-        monthlyIncome: data.monthlyIncome,
-        additionalIncome: data.additionalIncome,
-        additionalIncomeSource: data.additionalIncomeSource,
-        rentalHistory: data.rentalHistory,
-        additionalOccupants: data.additionalOccupants,
-        hasPets: data.hasPets,
-        pets: data.pets,
-        hasVehicles: data.hasVehicles,
-        vehicles: data.vehicles,
-        emergencyContactName: data.emergencyContactName,
-        emergencyContactPhone: data.emergencyContactPhone,
-        emergencyContactRelation: data.emergencyContactRelation,
+        // Pets & vehicles
+        hasPets: data.hasPets ?? false,
+        petDetails: data.pets ? JSON.stringify(data.pets) : undefined,
+        hasVehicles: data.hasVehicles ?? false,
+        vehicleDetails: data.vehicles ? JSON.stringify(data.vehicles) : undefined,
+        // Co-applicants
+        coApplicants: data.additionalOccupants,
+        // References
         references: data.references,
-        consentToBackgroundCheck: data.consentToBackgroundCheck,
-        consentToCreditCheck: data.consentToCreditCheck,
-        desiredMoveInDate: data.desiredMoveInDate ? new Date(data.desiredMoveInDate) : undefined,
-        desiredLeaseTerm: data.desiredLeaseTerm,
-        howDidYouHear: data.howDidYouHear,
-        additionalComments: data.additionalComments,
-        status: 'SUBMITTED',
-        submittedAt: new Date(),
+        // Notes
+        notes: data.additionalComments,
+        // Status
+        status: 'NEW',
       },
       include: {
         unit: {

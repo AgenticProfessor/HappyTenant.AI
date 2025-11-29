@@ -59,7 +59,7 @@ export async function GET(request: Request, { params }: RouteParams) {
           include: {
             charge: true,
           },
-          orderBy: { allocatedAt: 'asc' },
+          orderBy: { createdAt: 'asc' },
         },
       },
     })
@@ -191,7 +191,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
           } else {
             // Check if overdue
             if (new Date(allocation.charge.dueDate) < new Date()) {
-              newStatus = 'OVERDUE'
+              newStatus = 'DUE'
             }
           }
 

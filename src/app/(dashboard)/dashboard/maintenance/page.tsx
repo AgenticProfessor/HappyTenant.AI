@@ -49,11 +49,14 @@ import {
   Zap,
 } from 'lucide-react';
 import { mockMaintenanceRequests, mockUnits, getPropertyById, mockTenants } from '@/data/mock-data';
+import { useStewardContext } from '@/hooks/use-steward-context';
 
 export default function MaintenancePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
   const [filterPriority, setFilterPriority] = useState<string | null>(null);
+
+
 
   const filteredRequests = mockMaintenanceRequests.filter((request) => {
     const matchesSearch =
@@ -67,9 +70,21 @@ export default function MaintenancePage() {
   const openRequests = mockMaintenanceRequests.filter((r) => (r.status as string) === 'open').length;
   const inProgressRequests = mockMaintenanceRequests.filter((r) => (r.status as string) === 'in_progress').length;
   const completedRequests = mockMaintenanceRequests.filter((r) => (r.status as string) === 'completed').length;
-  const urgentRequests = mockMaintenanceRequests.filter(
-    (r) => (r.priority as string) === 'high' && (r.status as string) !== 'completed'
-  ).length;
+  const urgentRequests = mockMaintenanceRequests.filter((r) => ((r.priority as string) === 'urgent' || (r.priority as string) === 'high') && (r.status as string) !== 'completed').length;
+
+  useStewardContext({
+    type: 'page',
+    name: 'maintenance-list',
+    description: 'List of all maintenance requests',
+    data: {
+      totalRequests: mockMaintenanceRequests.length,
+      openRequests,
+      inProgressRequests,
+      completedRequests,
+      urgentRequests,
+    },
+    url: '/dashboard/maintenance',
+  });
 
   const getUnitInfo = (unitId: string) => {
     const unit = mockUnits.find((u) => u.id === unitId);
@@ -328,14 +343,12 @@ export default function MaintenancePage() {
             <Card key={request.id}>
               <CardContent className="p-6">
                 <div className="flex flex-col lg:flex-row lg:items-start gap-4">
-                  <div className={`h-12 w-12 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                    (request.priority as string) === 'urgent' || request.priority === 'high' ? 'bg-red-100' :
+                  <div className={`h-12 w-12 rounded-lg flex items-center justify-center flex-shrink-0 ${(request.priority as string) === 'urgent' || request.priority === 'high' ? 'bg-red-100' :
                     request.priority === 'normal' ? 'bg-blue-100' : 'bg-gray-100'
-                  }`}>
-                    <Wrench className={`h-6 w-6 ${
-                      (request.priority as string) === 'urgent' || request.priority === 'high' ? 'text-red-600' :
+                    }`}>
+                    <Wrench className={`h-6 w-6 ${(request.priority as string) === 'urgent' || request.priority === 'high' ? 'text-red-600' :
                       request.priority === 'normal' ? 'text-blue-600' : 'text-gray-600'
-                    }`} />
+                      }`} />
                   </div>
 
                   <div className="flex-1 min-w-0">
@@ -347,7 +360,7 @@ export default function MaintenancePage() {
                       <Badge
                         variant={
                           request.status === 'open' ? 'destructive' :
-                          request.status === 'in_progress' ? 'default' : 'secondary'
+                            request.status === 'in_progress' ? 'default' : 'secondary'
                         }
                         className="gap-1"
                       >

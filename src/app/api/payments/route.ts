@@ -256,12 +256,12 @@ export async function POST(request: Request) {
           amount: data.amount,
           method: data.method,
           receivedAt: new Date(data.receivedAt),
-          referenceNumber: data.referenceNumber,
+          externalId: data.referenceNumber,
           checkNumber: data.checkNumber,
           notes: data.notes,
           status: 'COMPLETED',
           processedAt: new Date(),
-          processedBy: user.id,
+          recordedByUserId: user.id,
         },
       })
 
@@ -275,7 +275,7 @@ export async function POST(request: Request) {
         const unpaidCharges = await tx.charge.findMany({
           where: {
             leaseId: data.leaseId,
-            status: { in: ['DUE', 'PARTIAL', 'OVERDUE'] },
+            status: { in: ['DUE', 'PARTIAL'] },
           },
           orderBy: { dueDate: 'asc' },
           include: {
@@ -290,7 +290,7 @@ export async function POST(request: Request) {
 
           // Calculate remaining balance on this charge
           const allocated = charge.paymentAllocations.reduce(
-            (sum, pa) => sum + Number(pa.amount),
+            (sum: number, pa: any) => sum + Number(pa.amount),
             0
           )
           const remainingOnCharge = Number(charge.amount) - allocated
@@ -313,7 +313,7 @@ export async function POST(request: Request) {
             paymentId: payment.id,
             chargeId: allocation.chargeId,
             amount: allocation.amount,
-            allocatedAt: new Date(),
+            createdAt: new Date(),
           },
         })
 
@@ -325,11 +325,11 @@ export async function POST(request: Request) {
 
         if (charge) {
           const totalAllocated = charge.paymentAllocations.reduce(
-            (sum, pa) => sum + Number(pa.amount),
+            (sum: number, pa: any) => sum + Number(pa.amount),
             0
           ) + allocation.amount
 
-          let newStatus: 'DUE' | 'PARTIAL' | 'PAID' | 'OVERDUE' = 'PARTIAL'
+          let newStatus: 'DUE' | 'PARTIAL' | 'PAID' = 'PARTIAL'
           if (totalAllocated >= Number(charge.amount)) {
             newStatus = 'PAID'
           }

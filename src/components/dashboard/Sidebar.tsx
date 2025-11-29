@@ -26,6 +26,7 @@ import {
   Settings,
   TrendingUp,
   ChevronRight,
+  FileBarChart,
 } from 'lucide-react';
 
 // Navigation structure matching TurboTenant
@@ -48,6 +49,7 @@ const rentersNavigation = [
 const accountingNavigation = [
   { name: 'Insights', href: '/dashboard/insights', icon: BarChart3 },
   { name: 'Transactions', href: '/dashboard/transactions', icon: Receipt },
+  { name: 'Reports', href: '/dashboard/reports', icon: FileBarChart },
 ];
 
 const resourcesNavigation = [

@@ -878,6 +878,11 @@ model MaintenanceRequest {
   aiCategorySuggestion    String?
   aiPrioritySuggestion    String?
 
+  // Steward AI Integration
+  aiTriageResult   Json?    // Structured triage output from Steward
+  aiTriagedAt      DateTime?
+  troubleshootingSessionId String? // Links to StewardSession for troubleshooting
+
   // Timestamps
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -1158,6 +1163,10 @@ model Message {
   aiSentiment      String?
   aiSuggestedResponse String?
 
+  // Steward AI Integration
+  aiDraftId        String?  // Reference to AIActionLog for AI-drafted messages
+  aiModified       Boolean  @default(false) // Was this AI draft edited by human?
+
   // Timestamps
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -1371,6 +1380,17 @@ enum NotificationChannel {
 // ACCOUNTING & REPORTING
 // ============================================================
 
+// For tracking user's favorite reports
+model UserReportFavorite {
+  id         String   @id @default(cuid())
+  userId     String
+  reportType String
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, reportType])
+  @@index([userId])
+}
+
 // For tracking expenses not tied to maintenance (e.g., property taxes, insurance)
 model Expense {
   id               String   @id @default(cuid())
@@ -1488,4 +1508,212 @@ enum AuditAction {
   DOCUMENT_UPLOADED
   DOCUMENT_SIGNED
   NOTIFICATION_SENT
+  // AI-related actions
+  AI_COMPLETION
+  AI_TOOL_CALL
+  AI_VOICE_TRANSCRIPTION
+  AI_VOICE_SYNTHESIS
+  AI_OCR_EXTRACTION
+  AI_DRAFT_GENERATED
+  AI_DRAFT_APPROVED
+  AI_DRAFT_REJECTED
+  AI_AUTO_ACTION
+  AI_SESSION_STARTED
+  AI_SESSION_ENDED
+}
+
+// ============================================================
+// STEWARD AI SYSTEM
+// ============================================================
+
+// AI Action Logging - tracks all AI interactions for audit trail
+model AIActionLog {
+  id               String   @id @default(cuid())
+  organizationId   String
+
+  // User/Session context
+  userId           String?
+  sessionId        String
+
+  // Action details
+  module           AIModule
+  actionType       String
+
+  // Input/Output
+  inputPrompt      String?  @db.Text
+  inputContext     Json?
+  inputFiles       String[]
+
+  outputResponse   String?  @db.Text
+  outputToolCalls  Json?
+  outputContent    String?  @db.Text
+
+  // Human decision tracking
+  humanDecision    HumanDecision @default(PENDING)
+  modifiedContent  String?  @db.Text
+  decidedByUserId  String?
+  decidedAt        DateTime?
+
+  // Configuration
+  automationLevel  AutomationLevel
+
+  // Metrics
+  tokensUsed       Int      @default(0)
+  latencyMs        Int      @default(0)
+  provider         String   @default("")
+  model            String   @default("")
+
+  // Timestamps
+  createdAt        DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([sessionId])
+  @@index([module])
+  @@index([createdAt])
+}
+
+// Steward Conversation Sessions - maintains conversation state
+model StewardSession {
+  id               String   @id @default(cuid())
+  organizationId   String
+  userId           String
+
+  // Session context
+  module           AIModule?
+  contextType      String?  // 'maintenance_request', 'lease', etc.
+  contextId        String?
+
+  // Conversation state
+  messages         Json     // Array of conversation messages
+  state            Json?    // Module-specific state
+
+  // Status
+  isActive         Boolean  @default(true)
+
+  // Timestamps
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  lastActivityAt   DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([isActive])
+}
+
+// AI Configuration per organization
+model AIConfiguration {
+  id               String   @id @default(cuid())
+  organizationId   String   @unique
+
+  // Provider preferences
+  preferredProvider String  @default("openai") // 'openai' | 'anthropic'
+  openaiApiKey     String?  // Encrypted
+  anthropicApiKey  String?  // Encrypted
+
+  // Voice settings
+  elevenLabsApiKey String?  // Encrypted
+  voiceId          String?
+  voiceEnabled     Boolean  @default(true)
+
+  // Automation levels (JSON for flexibility)
+  automationConfig Json     @default("{}")
+
+  // Feature flags
+  featuresEnabled  String[] @default([])
+
+  // Usage tracking
+  monthlyTokenBudget Int?
+  currentMonthTokens Int    @default(0)
+  lastTokenResetAt DateTime?
+
+  // Timestamps
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([organizationId])
+}
+
+// Document extraction cache - stores OCR/parsing results
+model DocumentExtraction {
+  id               String   @id @default(cuid())
+  documentId       String   @unique
+
+  // Extraction results
+  extractedData    Json
+  rawText          String   @db.Text
+  confidence       Float
+
+  // Validation status
+  isValidated      Boolean  @default(false)
+  validatedByUserId String?
+  validatedAt      DateTime?
+
+  // Applied status
+  isApplied        Boolean  @default(false)
+  appliedEntities  Json?    // { propertyId, unitId, tenantIds[], leaseId }
+
+  // Timestamps
+  createdAt        DateTime @default(now())
+
+  @@index([documentId])
+}
+
+// Voice call logs - tracks AI-assisted phone calls
+model VoiceCallLog {
+  id               String   @id @default(cuid())
+  organizationId   String
+
+  // Participants
+  callerUserId     String?
+  recipientType    String   // 'tenant' | 'vendor'
+  recipientId      String
+
+  // Call details
+  direction        String   // 'outbound' | 'inbound'
+  status           String   // 'initiated' | 'ringing' | 'in_progress' | 'completed' | 'failed'
+  duration         Int?     // seconds
+
+  // AI involvement
+  aiAssisted       Boolean  @default(false)
+  aiTranscript     String?  @db.Text
+  aiSummary        String?  @db.Text
+
+  // External references
+  externalCallId   String?  // Twilio/provider call ID
+  recordingUrl     String?
+
+  // Timestamps
+  startedAt        DateTime @default(now())
+  endedAt          DateTime?
+
+  @@index([organizationId])
+  @@index([recipientType, recipientId])
+}
+
+// AI Module types
+enum AIModule {
+  COMMUNICATIONS
+  MAINTENANCE
+  ONBOARDING
+  LEASING
+  COMPLIANCE
+  ACCOUNTING
+}
+
+// Human decision on AI-generated content
+enum HumanDecision {
+  PENDING
+  APPROVED
+  REJECTED
+  MODIFIED
+  AUTO_EXECUTED
+}
+
+// Automation levels for AI actions
+enum AutomationLevel {
+  MANUAL           // AI suggests, human must initiate
+  SUGGEST          // AI drafts, human must approve
+  AUTO_WITH_REVIEW // AI acts, human can review/undo
+  FULLY_AUTO       // AI acts autonomously
 }

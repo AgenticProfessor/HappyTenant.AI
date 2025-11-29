@@ -7,36 +7,32 @@ import { z } from 'zod'
 const vendorSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   type: z.enum([
-    'PLUMBER',
-    'ELECTRICIAN',
+    'PLUMBING',
+    'ELECTRICAL',
     'HVAC',
     'GENERAL_CONTRACTOR',
-    'HANDYMAN',
-    'LANDSCAPER',
+    'GENERAL_HANDYMAN',
+    'LANDSCAPING',
     'PEST_CONTROL',
     'CLEANING',
     'LOCKSMITH',
-    'APPLIANCE_REPAIR',
-    'PAINTER',
-    'ROOFER',
+    'APPLIANCE',
+    'PAINTING',
+    'ROOFING',
     'FLOORING',
-    'INSPECTOR',
     'OTHER'
   ]),
   contactName: z.string().optional(),
   email: z.string().email().optional().or(z.literal('')),
-  phone: z.string().optional(),
+  phone: z.string().min(1, 'Phone is required'),
   address: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
   postalCode: z.string().optional(),
   website: z.string().optional(),
   licenseNumber: z.string().optional(),
-  insuranceInfo: z.string().optional(),
-  w9OnFile: z.boolean().default(false),
   hourlyRate: z.number().optional(),
   notes: z.string().optional(),
-  isPreferred: z.boolean().default(false),
 })
 
 // GET /api/vendors - List all vendors for the organization
@@ -62,7 +58,6 @@ export async function GET(request: Request) {
     const type = searchParams.get('type')
     const status = searchParams.get('status')
     const search = searchParams.get('search')
-    const isPreferred = searchParams.get('isPreferred')
 
     // Build filter
     const where: Record<string, unknown> = {
@@ -77,9 +72,6 @@ export async function GET(request: Request) {
       where.status = status
     }
 
-    if (isPreferred === 'true') {
-      where.isPreferred = true
-    }
 
     if (search) {
       where.OR = [
@@ -96,26 +88,22 @@ export async function GET(request: Request) {
         _count: {
           select: {
             maintenanceRequests: true,
-            workOrders: true,
           },
         },
       },
       orderBy: [
-        { isPreferred: 'desc' },
         { name: 'asc' },
       ],
     })
 
     // Calculate summary
     const activeVendors = vendors.filter(v => v.status === 'ACTIVE').length
-    const preferredVendors = vendors.filter(v => v.isPreferred).length
 
     return NextResponse.json({
       vendors,
       summary: {
         total: vendors.length,
         active: activeVendors,
-        preferred: preferredVendors,
       },
     })
   } catch (error) {
@@ -163,21 +151,18 @@ export async function POST(request: Request) {
       data: {
         organizationId: user.organizationId,
         name: data.name,
-        type: data.type,
+        categories: data.type ? [data.type] : [],
         contactName: data.contactName,
         email: data.email || null,
         phone: data.phone,
-        address: data.address,
+        addressLine1: data.address,
         city: data.city,
         state: data.state,
         postalCode: data.postalCode,
         website: data.website,
         licenseNumber: data.licenseNumber,
-        insuranceInfo: data.insuranceInfo,
-        w9OnFile: data.w9OnFile,
         hourlyRate: data.hourlyRate,
         notes: data.notes,
-        isPreferred: data.isPreferred,
         status: 'ACTIVE',
       },
     })

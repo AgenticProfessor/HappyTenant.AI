@@ -7,20 +7,19 @@ import { z } from 'zod'
 const vendorUpdateSchema = z.object({
   name: z.string().min(1).optional(),
   type: z.enum([
-    'PLUMBER',
-    'ELECTRICIAN',
+    'PLUMBING',
+    'ELECTRICAL',
     'HVAC',
     'GENERAL_CONTRACTOR',
-    'HANDYMAN',
-    'LANDSCAPER',
+    'GENERAL_HANDYMAN',
+    'LANDSCAPING',
     'PEST_CONTROL',
     'CLEANING',
     'LOCKSMITH',
-    'APPLIANCE_REPAIR',
-    'PAINTER',
-    'ROOFER',
+    'APPLIANCE',
+    'PAINTING',
+    'ROOFING',
     'FLOORING',
-    'INSPECTOR',
     'OTHER'
   ]).optional(),
   contactName: z.string().optional(),
@@ -32,12 +31,9 @@ const vendorUpdateSchema = z.object({
   postalCode: z.string().optional(),
   website: z.string().optional(),
   licenseNumber: z.string().optional(),
-  insuranceInfo: z.string().optional(),
-  w9OnFile: z.boolean().optional(),
   hourlyRate: z.number().optional(),
   notes: z.string().optional(),
-  isPreferred: z.boolean().optional(),
-  status: z.enum(['ACTIVE', 'INACTIVE', 'BLOCKED']).optional(),
+  status: z.enum(['ACTIVE', 'INACTIVE']).optional(),
   rating: z.number().min(1).max(5).optional(),
 })
 
@@ -86,30 +82,9 @@ export async function GET(request: Request, { params }: RouteParams) {
             },
           },
         },
-        workOrders: {
-          orderBy: { createdAt: 'desc' },
-          take: 10,
-          include: {
-            maintenanceRequest: {
-              include: {
-                unit: {
-                  include: {
-                    property: {
-                      select: {
-                        id: true,
-                        name: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
         _count: {
           select: {
             maintenanceRequests: true,
-            workOrders: true,
           },
         },
       },
@@ -119,44 +94,13 @@ export async function GET(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Vendor not found' }, { status: 404 })
     }
 
-    // Calculate work order stats
-    const completedWorkOrders = await prisma.workOrder.count({
-      where: {
-        vendorId: vendor.id,
-        status: 'COMPLETED',
-      },
-    })
-
-    const totalSpent = await prisma.workOrder.aggregate({
-      where: {
-        vendorId: vendor.id,
-        status: 'COMPLETED',
-      },
-      _sum: {
-        actualCost: true,
-      },
-    })
-
-    const avgCompletionTime = await prisma.workOrder.aggregate({
-      where: {
-        vendorId: vendor.id,
-        status: 'COMPLETED',
-        completedAt: { not: null },
-      },
-      _avg: {
-        // We'd calculate this from created to completed if we had the data
-      },
-    })
-
     return NextResponse.json({
       vendor,
       stats: {
-        totalJobs: vendor._count.workOrders,
-        completedJobs: completedWorkOrders,
-        totalSpent: Number(totalSpent._sum.actualCost || 0),
-        completionRate: vendor._count.workOrders > 0
-          ? Math.round((completedWorkOrders / vendor._count.workOrders) * 100)
-          : 0,
+        totalJobs: vendor._count.maintenanceRequests,
+        completedJobs: 0,
+        totalSpent: 0,
+        completionRate: 0,
       },
     })
   } catch (error) {
@@ -217,21 +161,18 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       where: { id },
       data: {
         ...(data.name && { name: data.name }),
-        ...(data.type && { type: data.type }),
+        ...(data.type && { categories: [data.type] }),
         ...(data.contactName !== undefined && { contactName: data.contactName }),
         ...(data.email !== undefined && { email: data.email || null }),
         ...(data.phone !== undefined && { phone: data.phone }),
-        ...(data.address !== undefined && { address: data.address }),
+        ...(data.address !== undefined && { addressLine1: data.address }),
         ...(data.city !== undefined && { city: data.city }),
         ...(data.state !== undefined && { state: data.state }),
         ...(data.postalCode !== undefined && { postalCode: data.postalCode }),
         ...(data.website !== undefined && { website: data.website }),
         ...(data.licenseNumber !== undefined && { licenseNumber: data.licenseNumber }),
-        ...(data.insuranceInfo !== undefined && { insuranceInfo: data.insuranceInfo }),
-        ...(data.w9OnFile !== undefined && { w9OnFile: data.w9OnFile }),
         ...(data.hourlyRate !== undefined && { hourlyRate: data.hourlyRate }),
         ...(data.notes !== undefined && { notes: data.notes }),
-        ...(data.isPreferred !== undefined && { isPreferred: data.isPreferred }),
         ...(data.status && { status: data.status }),
         ...(data.rating !== undefined && { rating: data.rating }),
       },
@@ -292,11 +233,6 @@ export async function DELETE(request: Request, { params }: RouteParams) {
             status: { notIn: ['COMPLETED', 'CANCELLED'] },
           },
         },
-        workOrders: {
-          where: {
-            status: { notIn: ['COMPLETED', 'CANCELLED'] },
-          },
-        },
       },
     })
 
@@ -305,7 +241,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     }
 
     // Check for active work
-    if (existingVendor.maintenanceRequests.length > 0 || existingVendor.workOrders.length > 0) {
+    if (existingVendor.maintenanceRequests.length > 0) {
       return NextResponse.json(
         { error: 'Cannot delete vendor with active maintenance requests or work orders' },
         { status: 400 }
