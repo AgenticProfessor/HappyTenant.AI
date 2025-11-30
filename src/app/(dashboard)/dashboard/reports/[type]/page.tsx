@@ -159,6 +159,7 @@ export default function ReportViewerPage() {
             reportType={reportType}
             filters={filters}
             disabled={isLoading || !reportData}
+            reportData={reportData}
           />
         </div>
       </div>

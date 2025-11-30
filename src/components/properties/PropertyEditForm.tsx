@@ -89,7 +89,7 @@ export function PropertyEditForm({ property, onSuccess, onCancel }: PropertyEdit
       currentValue: property.currentValue || 0,
       status: property.status,
       photos: property.photos || [],
-    },
+    } as any,
   });
 
   const onSubmit = async (data: PropertyFormValues) => {

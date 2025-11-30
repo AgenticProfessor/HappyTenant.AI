@@ -40,27 +40,27 @@ export default function RootLayout({
         <meta name="theme-color" content="#6366f1" />
       </head>
       <body className={`${plusJakarta.variable} font-sans antialiased`}>
-        <ClerkProvider
+        {/* <ClerkProvider
           afterSignOutUrl="/"
           signInFallbackRedirectUrl="/dashboard"
           signUpFallbackRedirectUrl="/dashboard"
-        >
-          <QueryProvider>
-            <AuthProvider>
-              <ThemeProvider
-                attribute="class"
-                defaultTheme="system"
-                enableSystem
-                disableTransitionOnChange
-              >
-                <StewardProvider>
-                  {children}
-                  <Toaster />
-                </StewardProvider>
-              </ThemeProvider>
-            </AuthProvider>
-          </QueryProvider>
-        </ClerkProvider>
+        > */}
+        <QueryProvider>
+          <AuthProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <StewardProvider>
+                {children}
+                <Toaster />
+              </StewardProvider>
+            </ThemeProvider>
+          </AuthProvider>
+        </QueryProvider>
+        {/* </ClerkProvider> */}
       </body>
     </html>
   );

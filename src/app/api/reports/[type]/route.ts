@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@/lib/auth';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getReportDefinition, getDateRangeFromPeriod } from '@/lib/reports/definitions';
@@ -113,8 +113,11 @@ export async function GET(
     return NextResponse.json({ report });
   } catch (error) {
     console.error('Error generating report:', error);
+    if (error instanceof Error) {
+      console.error('Error stack:', error.stack);
+    }
     return NextResponse.json(
-      { error: 'Failed to generate report' },
+      { error: 'Failed to generate report', details: String(error) },
       { status: 500 }
     );
   }

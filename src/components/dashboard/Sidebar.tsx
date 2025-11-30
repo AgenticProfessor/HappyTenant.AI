@@ -48,15 +48,13 @@ const rentersNavigation = [
 
 const accountingNavigation = [
   { name: 'Insights', href: '/dashboard/insights', icon: BarChart3 },
-  { name: 'Transactions', href: '/dashboard/transactions', icon: Receipt },
   { name: 'Reports', href: '/dashboard/reports', icon: FileBarChart },
 ];
 
 const resourcesNavigation = [
   { name: 'Toolbox', href: '/dashboard/toolbox', icon: Calculator },
-  { name: 'Community', href: '/dashboard/community', icon: Users2 },
+  { name: 'Intelligence', href: '/dashboard/intelligence', icon: Users2 },
   { name: 'Need Help?', href: '/dashboard/help', icon: HelpCircle },
-  { name: 'Referrals', href: '/dashboard/referrals', icon: Gift },
 ];
 
 interface SidebarProps {

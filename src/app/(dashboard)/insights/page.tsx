@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,9 +31,35 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock,
+  Sparkles,
+  Lightbulb,
+  ArrowRight,
+  Target,
+  ShieldAlert
 } from 'lucide-react';
 
-// Simulated chart data - in production would use Recharts or similar
+// Types for Steward Analysis
+interface AccountingInsight {
+  type: 'anomaly' | 'trend' | 'forecast' | 'optimization' | 'risk' | 'opportunity';
+  title: string;
+  description: string;
+  impact: 'high' | 'medium' | 'low';
+  value?: string;
+  action?: string;
+}
+
+interface AccountingAnalysis {
+  summary: string;
+  insights: AccountingInsight[];
+  monthOverMonth: {
+    revenue: number;
+    expenses: number;
+    noi: number;
+  };
+  timestamp: string;
+}
+
+// Simulated chart data
 const revenueData = [
   { month: 'Jan', revenue: 24500, expenses: 8200 },
   { month: 'Feb', revenue: 25200, expenses: 7800 },
@@ -69,6 +95,25 @@ const delinquentTenants = [
 export default function InsightsPage() {
   const [dateRange, setDateRange] = useState('this-month');
   const [selectedProperty, setSelectedProperty] = useState('all');
+  const [analysis, setAnalysis] = useState<AccountingAnalysis | null>(null);
+  const [loadingAnalysis, setLoadingAnalysis] = useState(true);
+
+  // Fetch Steward Analysis
+  useEffect(() => {
+    const fetchAnalysis = async () => {
+      try {
+        const res = await fetch('/api/intelligence/accounting');
+        const data = await res.json();
+        setAnalysis(data);
+      } catch (error) {
+        console.error('Failed to fetch accounting analysis', error);
+      } finally {
+        setLoadingAnalysis(false);
+      }
+    };
+
+    fetchAnalysis();
+  }, []);
 
   // Summary metrics
   const totalRevenue = 28500;
@@ -85,13 +130,13 @@ export default function InsightsPage() {
   const netIncomeChange = 5.2;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 p-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Insights</h1>
-          <p className="text-muted-foreground">
-            Financial analytics and performance metrics
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Insights</h1>
+          <p className="text-slate-500 mt-1">
+            Financial analytics and portfolio performance
           </p>
         </div>
         <div className="flex gap-2">
@@ -105,19 +150,6 @@ export default function InsightsPage() {
               <SelectItem value="last-month">Last Month</SelectItem>
               <SelectItem value="this-quarter">This Quarter</SelectItem>
               <SelectItem value="this-year">This Year</SelectItem>
-              <SelectItem value="custom">Custom Range</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={selectedProperty} onValueChange={setSelectedProperty}>
-            <SelectTrigger className="w-[180px]">
-              <Building2 className="h-4 w-4 mr-2" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Properties</SelectItem>
-              {propertyPerformance.map((prop) => (
-                <SelectItem key={prop.name} value={prop.name}>{prop.name}</SelectItem>
-              ))}
             </SelectContent>
           </Select>
           <Button variant="outline">
@@ -127,7 +159,124 @@ export default function InsightsPage() {
         </div>
       </div>
 
-      {/* Key Metrics */}
+      {/* Steward AI Accounting Analyst */}
+      <Card className="bg-gradient-to-br from-indigo-900 to-slate-900 text-white border-0 shadow-xl overflow-hidden relative">
+        <div className="absolute top-0 right-0 p-8 opacity-10">
+          <Sparkles className="h-48 w-48" />
+        </div>
+        <CardHeader className="relative z-10 pb-2">
+          <div className="flex items-center gap-2 mb-2">
+            <Badge variant="secondary" className="bg-indigo-500/20 text-indigo-200 border-0 hover:bg-indigo-500/30">
+              <Sparkles className="h-3 w-3 mr-1" />
+              Steward AI Analyst
+            </Badge>
+            <span className="text-xs text-indigo-300">Powered by Gemini 3 Pro</span>
+          </div>
+          <CardTitle className="text-2xl font-light">Portfolio Intelligence</CardTitle>
+        </CardHeader>
+        <CardContent className="relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Summary */}
+            <div className="lg:col-span-2 space-y-6">
+              {loadingAnalysis ? (
+                <div className="space-y-3 animate-pulse">
+                  <div className="h-4 bg-white/10 rounded w-3/4"></div>
+                  <div className="h-4 bg-white/10 rounded w-full"></div>
+                  <div className="h-4 bg-white/10 rounded w-5/6"></div>
+                </div>
+              ) : (
+                <>
+                  <p className="text-lg text-indigo-50 leading-relaxed font-light">
+                    "{analysis?.summary}"
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {analysis?.insights.map((insight, idx) => (
+                      <div key={idx} className="bg-white/5 border border-white/10 rounded-lg p-4 hover:bg-white/10 transition-colors">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            {insight.type === 'anomaly' ? <AlertTriangle className="h-4 w-4 text-amber-400" /> :
+                              insight.type === 'trend' ? <TrendingUp className="h-4 w-4 text-emerald-400" /> :
+                                insight.type === 'forecast' ? <TrendingUp className="h-4 w-4 text-blue-400" /> :
+                                  insight.type === 'risk' ? <ShieldAlert className="h-4 w-4 text-red-400" /> :
+                                    insight.type === 'opportunity' ? <Target className="h-4 w-4 text-green-400" /> :
+                                      <Lightbulb className="h-4 w-4 text-purple-400" />}
+                            <span className="font-medium text-sm text-indigo-100">{insight.title}</span>
+                          </div>
+                          {insight.value && (
+                            <Badge variant="outline" className="border-white/20 text-white">
+                              {insight.value}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-indigo-200 mb-3">
+                          {insight.description}
+                        </p>
+                        {insight.action && (
+                          <Button size="sm" variant="secondary" className="h-7 text-xs bg-white/10 hover:bg-white/20 text-white border-0 w-full justify-between">
+                            {insight.action}
+                            <ArrowRight className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Key Metrics */}
+            <div className="bg-white/5 rounded-xl p-6 border border-white/10 flex flex-col justify-between">
+              <div>
+                <h3 className="text-sm font-medium text-indigo-200 mb-6 uppercase tracking-wider">Month over Month</h3>
+                <div className="space-y-6">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm text-slate-300">Revenue</span>
+                      <span className="text-emerald-400 text-sm font-medium flex items-center">
+                        <ArrowUpRight className="h-3 w-3 mr-1" />
+                        {analysis?.monthOverMonth.revenue}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+                      <div className="bg-emerald-500 h-full rounded-full" style={{ width: '65%' }}></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm text-slate-300">Expenses</span>
+                      <span className="text-amber-400 text-sm font-medium flex items-center">
+                        <ArrowUpRight className="h-3 w-3 mr-1" />
+                        {analysis?.monthOverMonth.expenses}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+                      <div className="bg-amber-500 h-full rounded-full" style={{ width: '45%' }}></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm text-slate-300">Net Operating Income</span>
+                      <span className="text-blue-400 text-sm font-medium flex items-center">
+                        <ArrowUpRight className="h-3 w-3 mr-1" />
+                        {analysis?.monthOverMonth.noi}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+                      <div className="bg-blue-500 h-full rounded-full" style={{ width: '72%' }}></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <Button className="w-full mt-6 bg-indigo-500 hover:bg-indigo-600 text-white border-0">
+                View Detailed Analytics
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Key Metrics Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-6">

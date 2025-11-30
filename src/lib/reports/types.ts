@@ -180,7 +180,7 @@ export interface DrilldownResponse {
 }
 
 // Export Types
-export type ExportFormat = 'csv' | 'excel' | 'pdf' | 'google-sheets' | 'quickbooks';
+export type ExportFormat = 'csv' | 'excel' | 'pdf' | 'google-sheets' | 'quickbooks' | 'xero' | 'wave';
 
 export interface ExportRequest {
   reportType: ReportType;

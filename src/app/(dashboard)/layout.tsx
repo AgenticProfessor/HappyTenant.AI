@@ -167,17 +167,30 @@ export default function DashboardLayout({
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/dashboard/account">
+                    <Link href="/dashboard/account?tab=account">
                       <User className="h-4 w-4 mr-2" />
                       Profile
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/dashboard/account">
-                      <Settings className="h-4 w-4 mr-2" />
-                      Settings
+                    <Link href="/dashboard/account?tab=rent-payments">
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Rent Payments
                     </Link>
                   </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard/account?tab=billing">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Billing
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard/account?tab=advanced">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Advanced Settings
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem>
                     <Building2 className="h-4 w-4 mr-2" />
                     {mockOrganization.name}

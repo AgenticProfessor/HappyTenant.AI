@@ -37,124 +37,34 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const { user: clerkUser, isLoaded: clerkLoaded, isSignedIn } = useUser();
-  const { signOut } = useClerk();
-  const {
-    user,
-    organization,
-    isAuthenticated,
-    isLoading,
-    login: storeLogin,
-    logout: storeLogout,
-    hasRole,
-    hasPermission,
-    setLoading,
-  } = useAuthStore();
-
-  // Sync Clerk user with our auth store
-  useEffect(() => {
-    const syncUser = async () => {
-      if (!clerkLoaded) return;
-
-      if (isSignedIn && clerkUser) {
-        setLoading(true);
-        try {
-          // Fetch user and organization from our API
-          const response = await fetch('/api/auth/me');
-
-          if (response.ok) {
-            const data = await response.json();
-            storeLogin(
-              {
-                id: clerkUser.id,
-                email: clerkUser.primaryEmailAddress?.emailAddress || '',
-                name: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || 'User',
-                avatarUrl: clerkUser.imageUrl,
-                role: data.user?.role?.toLowerCase() || 'landlord',
-              },
-              data.organization ? {
-                id: data.organization.id,
-                name: data.organization.name,
-                slug: data.organization.slug,
-                type: data.organization.type?.toLowerCase() || 'individual',
-                subscriptionTier: data.organization.subscriptionTier?.toLowerCase() || 'free',
-              } : {
-                id: 'temp',
-                name: `${clerkUser.firstName || 'My'}'s Properties`,
-                slug: clerkUser.id,
-                type: 'individual' as const,
-                subscriptionTier: 'free' as const,
-              }
-            );
-          } else {
-            // If API fails, use Clerk data directly
-            storeLogin(
-              {
-                id: clerkUser.id,
-                email: clerkUser.primaryEmailAddress?.emailAddress || '',
-                name: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || 'User',
-                avatarUrl: clerkUser.imageUrl,
-                role: 'landlord',
-              },
-              {
-                id: 'temp',
-                name: `${clerkUser.firstName || 'My'}'s Properties`,
-                slug: clerkUser.id,
-                type: 'individual' as const,
-                subscriptionTier: 'free' as const,
-              }
-            );
-          }
-        } catch (error) {
-          console.error('Error syncing user:', error);
-          // Fallback to Clerk data
-          storeLogin(
-            {
-              id: clerkUser.id,
-              email: clerkUser.primaryEmailAddress?.emailAddress || '',
-              name: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || 'User',
-              avatarUrl: clerkUser.imageUrl,
-              role: 'landlord',
-            },
-            {
-              id: 'temp',
-              name: `${clerkUser.firstName || 'My'}'s Properties`,
-              slug: clerkUser.id,
-              type: 'individual' as const,
-              subscriptionTier: 'free' as const,
-            }
-          );
-        } finally {
-          setLoading(false);
-        }
-      } else if (clerkLoaded && !isSignedIn) {
-        storeLogout();
-        setLoading(false);
-      }
-    };
-
-    syncUser();
-  }, [clerkUser, clerkLoaded, isSignedIn, storeLogin, storeLogout, setLoading]);
-
-  // Logout using Clerk
-  const logout = async () => {
-    try {
-      setLoading(true);
-      await signOut();
-      storeLogout();
-    } catch (error) {
-      console.error('Logout error:', error);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
+  // Mock user data for testing
+  const mockUser: User = {
+    id: 'mock-user-id',
+    email: 'test@example.com',
+    name: 'Test User',
+    role: 'landlord',
   };
 
+  const mockOrganization: Organization = {
+    id: 'mock-org-id',
+    name: 'Test Organization',
+    slug: 'test-org',
+    type: 'individual',
+    subscriptionTier: 'pro',
+  };
+
+  const logout = async () => {
+    console.log('Mock logout');
+  };
+
+  const hasRole = (role: string | string[]) => true;
+  const hasPermission = (permission: string) => true;
+
   const value: AuthContextType = {
-    user,
-    organization,
-    isAuthenticated: isSignedIn || isAuthenticated,
-    isLoading: !clerkLoaded || isLoading,
+    user: mockUser,
+    organization: mockOrganization,
+    isAuthenticated: true,
+    isLoading: false,
     logout,
     hasRole,
     hasPermission,

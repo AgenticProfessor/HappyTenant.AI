@@ -12,10 +12,12 @@ export {
   type ModuleResponse,
 } from './base-module';
 
-// Module scaffolding - will be implemented in later phases
-// export { CommunicationsModule } from './communications';
-// export { MaintenanceTriageModule } from './maintenance-triage';
-// export { OnboardingOCRModule } from './onboarding-ocr';
-// export { LeasingModule } from './leasing';
-// export { ComplianceModule } from './compliance';
+// Core Modules - Fully Implemented
 export { AccountingModule } from './accounting';
+export { CommunicationsModule, type MessageDraft, type SentimentAnalysis, type MessageTemplate } from './communications';
+export { MaintenanceTriageModule, type TriageResult, type UrgencyAssessment, type VendorRecommendation } from './maintenance-triage';
+export { LeasingModule, type PropertyListing, type ApplicantScreening, type RentAnalysis, type LeaseRenewalStrategy } from './leasing';
+
+// Future modules - to be implemented
+// export { OnboardingOCRModule } from './onboarding-ocr';
+// export { ComplianceModule } from './compliance';
