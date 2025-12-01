@@ -1,0 +1,771 @@
+/* ============================================
+   MOCKUP 2: DATA SYMPHONY
+   Bold Geometric Dashboard Aesthetic
+   Dark Mode with Neon Accents
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* ============================================
+   THEME VARIABLES
+   ============================================ */
+.symphony-landing {
+  /* Dark Palette */
+  --sym-bg: #09090b;
+  --sym-bg-elevated: #18181b;
+  --sym-bg-card: #1f1f23;
+  --sym-border: rgba(255, 255, 255, 0.08);
+  --sym-border-bright: rgba(255, 255, 255, 0.15);
+
+  /* Text Colors */
+  --sym-text: #fafafa;
+  --sym-text-muted: #a1a1aa;
+  --sym-text-dim: #71717a;
+
+  /* Neon Accents */
+  --sym-neon-blue: #3b82f6;
+  --sym-neon-purple: #a855f7;
+  --sym-neon-mint: #22d3ee;
+  --sym-neon-pink: #ec4899;
+  --sym-neon-green: #22c55e;
+  --sym-neon-orange: #f97316;
+
+  /* Gradients */
+  --sym-gradient-blue: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  --sym-gradient-mint: linear-gradient(135deg, #22d3ee 0%, #22c55e 100%);
+  --sym-gradient-fire: linear-gradient(135deg, #f97316 0%, #ec4899 100%);
+
+  /* Glows */
+  --sym-glow-blue: 0 0 40px rgba(59, 130, 246, 0.3);
+  --sym-glow-purple: 0 0 40px rgba(168, 85, 247, 0.3);
+  --sym-glow-mint: 0 0 40px rgba(34, 211, 238, 0.3);
+
+  /* Typography */
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-body: 'Inter', sans-serif;
+
+  /* Transitions */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Base */
+  font-family: var(--font-body);
+  background: var(--sym-bg);
+  color: var(--sym-text);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+@keyframes pulse-neon {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes scan-line {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: var(--sym-glow-blue); }
+  50% { box-shadow: 0 0 80px rgba(59, 130, 246, 0.5); }
+}
+
+@keyframes grid-move {
+  0% { transform: perspective(500px) rotateX(60deg) translateY(0); }
+  100% { transform: perspective(500px) rotateX(60deg) translateY(50px); }
+}
+
+@keyframes float-up {
+  0% { opacity: 0; transform: translateY(60px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes number-count {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bar-grow {
+  0% { transform: scaleY(0); }
+  100% { transform: scaleY(1); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes orbit {
+  0% { transform: rotate(0deg) translateX(100px) rotate(0deg); }
+  100% { transform: rotate(360deg) translateX(100px) rotate(-360deg); }
+}
+
+/* ============================================
+   GLOBAL EFFECTS
+   ============================================ */
+.symphony-landing::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 100% 50%, rgba(168, 85, 247, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 0% 80%, rgba(34, 211, 238, 0.1) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Scan Line Effect */
+.symphony-landing::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--sym-neon-mint), transparent);
+  opacity: 0.3;
+  animation: scan-line 8s linear infinite;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ============================================
+   GRID BACKGROUND
+   ============================================ */
+.sym-grid-bg {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--sym-border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--sym-border) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black 20%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black 20%, transparent 70%);
+}
+
+/* ============================================
+   TYPOGRAPHY
+   ============================================ */
+.sym-heading {
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 0.9;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--sym-text);
+}
+
+.sym-heading-hero {
+  font-size: clamp(4rem, 15vw, 12rem);
+}
+
+.sym-heading-section {
+  font-size: clamp(3rem, 8vw, 6rem);
+}
+
+.sym-heading-card {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  letter-spacing: 0.05em;
+}
+
+.sym-text {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--sym-text-muted);
+}
+
+.sym-text-lg {
+  font-size: 1.25rem;
+  line-height: 1.6;
+}
+
+.sym-mono {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  letter-spacing: -0.02em;
+}
+
+.sym-gradient-text {
+  background: var(--sym-gradient-blue);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.sym-gradient-mint {
+  background: var(--sym-gradient-mint);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================================
+   LAYOUT
+   ============================================ */
+.sym-container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+@media (min-width: 768px) {
+  .sym-container {
+    padding: 0 4rem;
+  }
+}
+
+.sym-section {
+  padding: 8rem 0;
+  position: relative;
+}
+
+@media (min-width: 1024px) {
+  .sym-section {
+    padding: 12rem 0;
+  }
+}
+
+/* ============================================
+   HERO
+   ============================================ */
+.sym-hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.sym-hero-orb {
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.4;
+}
+
+.sym-hero-orb-1 {
+  top: 10%;
+  right: 10%;
+  background: var(--sym-neon-blue);
+  animation: glow-pulse 4s ease-in-out infinite;
+}
+
+.sym-hero-orb-2 {
+  bottom: 20%;
+  left: 5%;
+  background: var(--sym-neon-purple);
+  animation: glow-pulse 4s ease-in-out infinite 2s;
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+.sym-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.875rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.4s var(--ease-out-expo);
+  position: relative;
+  overflow: hidden;
+}
+
+.sym-btn-primary {
+  padding: 1.25rem 2.5rem;
+  background: var(--sym-gradient-blue);
+  color: white;
+  border: none;
+}
+
+.sym-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sym-glow-blue);
+}
+
+.sym-btn-primary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s linear infinite;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.sym-btn-primary:hover::before {
+  opacity: 1;
+}
+
+.sym-btn-outline {
+  padding: 1.25rem 2.5rem;
+  background: transparent;
+  color: var(--sym-text);
+  border: 1px solid var(--sym-border-bright);
+}
+
+.sym-btn-outline:hover {
+  border-color: var(--sym-neon-mint);
+  color: var(--sym-neon-mint);
+  box-shadow: var(--sym-glow-mint);
+}
+
+/* ============================================
+   CARDS
+   ============================================ */
+.sym-card {
+  background: var(--sym-bg-card);
+  border: 1px solid var(--sym-border);
+  border-radius: 12px;
+  padding: 2rem;
+  transition: all 0.5s var(--ease-out-expo);
+  position: relative;
+  overflow: hidden;
+}
+
+.sym-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--sym-neon-blue), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.sym-card:hover {
+  border-color: var(--sym-border-bright);
+  transform: translateY(-4px);
+}
+
+.sym-card:hover::before {
+  opacity: 1;
+}
+
+.sym-card-glow {
+  box-shadow: var(--sym-glow-blue);
+}
+
+/* ============================================
+   DATA VISUALIZATION
+   ============================================ */
+.sym-chart-container {
+  background: var(--sym-bg-elevated);
+  border: 1px solid var(--sym-border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.sym-chart-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--sym-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sym-chart-body {
+  padding: 2rem;
+}
+
+/* Bar Chart */
+.sym-bar-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 200px;
+  gap: 1rem;
+}
+
+.sym-bar {
+  flex: 1;
+  border-radius: 4px 4px 0 0;
+  position: relative;
+  transform-origin: bottom;
+  animation: bar-grow 1s var(--ease-out-expo) forwards;
+}
+
+.sym-bar-blue { background: var(--sym-gradient-blue); }
+.sym-bar-mint { background: var(--sym-gradient-mint); }
+.sym-bar-fire { background: var(--sym-gradient-fire); }
+
+.sym-bar::after {
+  content: attr(data-value);
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--sym-text-muted);
+}
+
+/* Line indicators */
+.sym-chart-lines {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 2rem;
+  pointer-events: none;
+}
+
+.sym-chart-line {
+  width: 100%;
+  height: 1px;
+  background: var(--sym-border);
+}
+
+/* ============================================
+   METRIC CARDS
+   ============================================ */
+.sym-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sym-metric-value {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  line-height: 1;
+  animation: number-count 0.8s var(--ease-out-expo) forwards;
+}
+
+.sym-metric-label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--sym-text-dim);
+}
+
+.sym-metric-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.sym-metric-trend-up {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--sym-neon-green);
+}
+
+.sym-metric-trend-down {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+/* ============================================
+   AI AGENT STATUS
+   ============================================ */
+.sym-agent-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+@media (min-width: 768px) {
+  .sym-agent-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.sym-agent-card {
+  background: var(--sym-bg-elevated);
+  border: 1px solid var(--sym-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.4s ease;
+}
+
+.sym-agent-card:hover {
+  border-color: var(--sym-neon-mint);
+}
+
+.sym-agent-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.sym-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: pulse-neon 2s ease-in-out infinite;
+}
+
+.sym-status-active { background: var(--sym-neon-green); }
+.sym-status-beta { background: var(--sym-neon-orange); }
+.sym-status-coming { background: var(--sym-text-dim); }
+
+/* ============================================
+   REPORT TABLE
+   ============================================ */
+.sym-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sym-table th,
+.sym-table td {
+  padding: 1rem 1.5rem;
+  text-align: left;
+  border-bottom: 1px solid var(--sym-border);
+}
+
+.sym-table th {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--sym-text-dim);
+  background: var(--sym-bg-elevated);
+}
+
+.sym-table td {
+  font-size: 0.875rem;
+}
+
+.sym-table tr {
+  transition: background 0.2s ease;
+}
+
+.sym-table tbody tr:hover {
+  background: var(--sym-bg-elevated);
+}
+
+/* ============================================
+   BADGES
+   ============================================ */
+.sym-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border-radius: 4px;
+  background: var(--sym-bg-elevated);
+  border: 1px solid var(--sym-border);
+  color: var(--sym-text-muted);
+}
+
+.sym-badge-blue {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: var(--sym-neon-blue);
+}
+
+.sym-badge-mint {
+  background: rgba(34, 211, 238, 0.1);
+  border-color: rgba(34, 211, 238, 0.3);
+  color: var(--sym-neon-mint);
+}
+
+/* ============================================
+   ICON BOX
+   ============================================ */
+.sym-icon-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  background: var(--sym-bg-elevated);
+  border: 1px solid var(--sym-border);
+  border-radius: 12px;
+  transition: all 0.4s ease;
+}
+
+.sym-icon-box:hover {
+  border-color: var(--sym-neon-blue);
+  box-shadow: var(--sym-glow-blue);
+}
+
+/* ============================================
+   TERMINAL STYLE
+   ============================================ */
+.sym-terminal {
+  background: var(--sym-bg);
+  border: 1px solid var(--sym-border);
+  border-radius: 12px;
+  overflow: hidden;
+  font-family: var(--font-mono);
+}
+
+.sym-terminal-header {
+  padding: 0.75rem 1rem;
+  background: var(--sym-bg-elevated);
+  border-bottom: 1px solid var(--sym-border);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sym-terminal-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.sym-terminal-body {
+  padding: 1.5rem;
+}
+
+.sym-terminal-line {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.sym-terminal-prompt {
+  color: var(--sym-neon-mint);
+}
+
+.sym-terminal-output {
+  color: var(--sym-text-muted);
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+.sym-fade-up {
+  opacity: 0;
+  transform: translateY(40px);
+  animation: float-up 0.8s var(--ease-out-expo) forwards;
+}
+
+.sym-delay-1 { animation-delay: 0.1s; }
+.sym-delay-2 { animation-delay: 0.2s; }
+.sym-delay-3 { animation-delay: 0.3s; }
+.sym-delay-4 { animation-delay: 0.4s; }
+.sym-delay-5 { animation-delay: 0.5s; }
+.sym-delay-6 { animation-delay: 0.6s; }
+
+/* ============================================
+   PRICING
+   ============================================ */
+.sym-pricing-card {
+  background: var(--sym-bg-card);
+  border: 1px solid var(--sym-border);
+  border-radius: 16px;
+  padding: 2.5rem;
+  position: relative;
+  transition: all 0.4s ease;
+}
+
+.sym-pricing-card:hover {
+  border-color: var(--sym-border-bright);
+}
+
+.sym-pricing-popular {
+  border-color: var(--sym-neon-blue);
+  box-shadow: var(--sym-glow-blue);
+}
+
+.sym-pricing-popular::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--sym-gradient-blue);
+}
+
+/* ============================================
+   CTA SECTION
+   ============================================ */
+.sym-cta {
+  background: var(--sym-bg-elevated);
+  border: 1px solid var(--sym-border);
+  border-radius: 24px;
+  padding: 6rem 4rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.sym-cta::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 767px) {
+  .sym-hero-orb {
+    width: 200px;
+    height: 200px;
+  }
+
+  .sym-agent-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  .symphony-landing::after,
+  .sym-hero-orb,
+  .sym-status-dot,
+  .sym-bar,
+  .sym-btn-primary::before,
+  .sym-fade-up {
+    animation: none;
+  }
+
+  .sym-fade-up {
+    opacity: 1;
+    transform: none;
+  }
+
+  .sym-bar {
+    transform: scaleY(1);
+  }
+}

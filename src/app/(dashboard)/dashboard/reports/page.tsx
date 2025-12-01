@@ -127,8 +127,8 @@ export default function ReportsPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Reports</h1>
-          <p className="text-slate-500 mt-1">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Reports</h1>
+          <p className="text-muted-foreground mt-1">
             Generate financial reports for your properties
           </p>
         </div>
@@ -136,7 +136,7 @@ export default function ReportsPage() {
 
       {/* Search */}
       <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           type="search"
           placeholder="Search for a report (Ctrl+F)"
@@ -148,11 +148,11 @@ export default function ReportsPage() {
 
       {/* Favorites Section */}
       {favoriteReports.length > 0 && !searchQuery && (
-        <Card className="border-yellow-200 bg-yellow-50/50">
+        <Card className="border-warning/30 bg-warning/10">
           <CardContent className="pt-4">
             <div className="flex items-center gap-2 mb-3">
               <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-              <h2 className="text-sm font-semibold text-slate-900">Favorites</h2>
+              <h2 className="text-sm font-semibold text-foreground">Favorites</h2>
             </div>
             <div className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
               {favoriteReports.map((report) => (
@@ -182,11 +182,11 @@ export default function ReportsPage() {
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="rounded-full bg-slate-100 p-4 mb-4">
-            <FileBarChart className="h-8 w-8 text-slate-400" />
+          <div className="rounded-full bg-muted p-4 mb-4">
+            <FileBarChart className="h-8 w-8 text-muted-foreground" />
           </div>
-          <h3 className="text-lg font-medium text-slate-900 mb-1">No reports found</h3>
-          <p className="text-slate-500 max-w-sm">
+          <h3 className="text-lg font-medium text-foreground mb-1">No reports found</h3>
+          <p className="text-muted-foreground max-w-sm">
             No reports match your search. Try a different search term.
           </p>
         </div>

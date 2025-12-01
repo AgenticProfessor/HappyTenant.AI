@@ -150,7 +150,7 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <div className="flex lg:flex-1">
@@ -193,7 +193,7 @@ export function Header() {
                                 >
                                   {item.name}
                                   {item.ai && (
-                                    <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-[var(--coral-light)] text-[var(--coral)]">
+                                    <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-coral-light text-coral">
                                       AI
                                     </span>
                                   )}
@@ -212,7 +212,7 @@ export function Header() {
                       <span className="flex items-center gap-2">
                         Landlords
                         {pendingRegUpdates > 0 && (
-                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--coral)] text-[10px] font-bold text-white">
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-coral text-[10px] font-bold text-white">
                             {pendingRegUpdates}
                           </span>
                         )}
@@ -221,17 +221,17 @@ export function Header() {
                     <AccordionContent>
                       <div className="space-y-4 pl-4">
                         {/* AI Compliance Alert Mobile */}
-                        <div className="p-3 rounded-lg bg-[var(--coral-light)] border border-[var(--coral)]/20">
+                        <div className="p-3 rounded-lg bg-coral-light border border-coral/20">
                           <div className="flex items-center gap-2 mb-2">
-                            <Sparkles className="h-4 w-4 text-[var(--coral)]" />
-                            <span className="text-sm font-semibold text-[var(--coral)]">AI Law Updates</span>
+                            <Sparkles className="h-4 w-4 text-coral" />
+                            <span className="text-sm font-semibold text-coral">AI Law Updates</span>
                           </div>
                           <p className="text-xs text-muted-foreground mb-2">
                             {pendingRegUpdates} pending regulatory changes in your states
                           </p>
                           <Link
                             href="/compliance"
-                            className="text-xs font-medium text-[var(--coral)] flex items-center gap-1"
+                            className="text-xs font-medium text-coral flex items-center gap-1"
                             onClick={() => setMobileMenuOpen(false)}
                           >
                             View Updates <ChevronRight className="h-3 w-3" />
@@ -372,7 +372,7 @@ export function Header() {
                                 >
                                   {item.name}
                                   {item.ai && (
-                                    <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-[var(--coral-light)] text-[var(--coral)]">
+                                    <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-coral-light text-coral">
                                       AI
                                     </span>
                                   )}
@@ -401,7 +401,7 @@ export function Header() {
                   <span className="flex items-center gap-2">
                     Landlords
                     {pendingRegUpdates > 0 && (
-                      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[var(--coral)] text-[9px] font-bold text-white">
+                      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-coral text-[9px] font-bold text-white">
                         {pendingRegUpdates}
                       </span>
                     )}
@@ -410,27 +410,27 @@ export function Header() {
                 <NavigationMenuContent>
                   <div className="w-[600px] p-6">
                     {/* AI Compliance Highlight Section */}
-                    <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-[var(--coral-light)] to-[var(--mint-light)] border border-[var(--coral)]/10">
+                    <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-[var(--coral-light)] to-mint-light border border-coral/10">
                       <div className="flex items-start gap-4">
                         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white shadow-sm">
                           <div className="relative">
-                            <Bell className="h-6 w-6 text-[var(--coral)]" />
-                            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--coral)] text-[8px] font-bold text-white">
+                            <Bell className="h-6 w-6 text-coral" />
+                            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-coral text-[8px] font-bold text-white">
                               {pendingRegUpdates}
                             </span>
                           </div>
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <Sparkles className="h-4 w-4 text-[var(--coral)]" />
-                            <h3 className="font-semibold text-[var(--coral)]">AI-Powered Compliance</h3>
+                            <Sparkles className="h-4 w-4 text-coral" />
+                            <h3 className="font-semibold text-coral">AI-Powered Compliance</h3>
                           </div>
                           <p className="text-sm text-muted-foreground mb-2">
                             {pendingRegUpdates} pending regulatory changes detected in your states. Your templates stay compliant automatically.
                           </p>
                           <Link
                             href="/compliance"
-                            className="inline-flex items-center gap-1 text-sm font-medium text-[var(--coral)] hover:underline"
+                            className="inline-flex items-center gap-1 text-sm font-medium text-coral hover:underline"
                           >
                             View Updates <ChevronRight className="h-4 w-4" />
                           </Link>
@@ -505,7 +505,7 @@ export function Header() {
                 <NavigationMenuTrigger className="text-sm font-medium">Renters</NavigationMenuTrigger>
                 <NavigationMenuContent>
                   <div className="w-[500px] p-6">
-                    <div className="mb-4 p-4 rounded-xl bg-gradient-to-r from-primary/5 to-[var(--mint-light)]">
+                    <div className="mb-4 p-4 rounded-xl bg-gradient-to-r from-primary/5 to-mint-light">
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
                           <Search className="h-5 w-5 text-white" />
@@ -514,7 +514,7 @@ export function Header() {
                           <h3 className="font-semibold">Find Your Next Home</h3>
                           <p className="text-sm text-muted-foreground">Browse available rentals in your area</p>
                         </div>
-                        <Button size="sm" className="ml-auto bg-[var(--mint)] hover:bg-[var(--mint)]/90 text-white">
+                        <Button size="sm" className="ml-auto bg-mint hover:bg-mint/90 text-white">
                           Search
                         </Button>
                       </div>

@@ -10,6 +10,47 @@ import { syncAccountStatus, recordSuccessfulPayout } from './connect';
 import type Stripe from 'stripe';
 
 // ============================================================
+// APPLICATION FEE HANDLERS
+// ============================================================
+
+/**
+ * Handle successful application fee payments.
+ * Updates any applications that used this payment intent.
+ */
+async function handleApplicationFeePaymentSucceeded(
+  paymentIntent: Stripe.PaymentIntent
+): Promise<void> {
+  const paymentIntentId = paymentIntent.id;
+
+  // Find applications with this payment intent that aren't marked as paid yet
+  const applications = await prisma.application.findMany({
+    where: {
+      stripePaymentIntentId: paymentIntentId,
+      applicationFeePaid: false,
+    },
+  });
+
+  if (applications.length === 0) {
+    // No unpaid applications found - might already be marked paid during submission
+    console.log(`No unpaid applications found for application fee PaymentIntent: ${paymentIntentId}`);
+    return;
+  }
+
+  // Update all matching applications
+  await prisma.application.updateMany({
+    where: {
+      stripePaymentIntentId: paymentIntentId,
+      applicationFeePaid: false,
+    },
+    data: {
+      applicationFeePaid: true,
+    },
+  });
+
+  console.log(`Marked ${applications.length} application(s) as paid for PaymentIntent: ${paymentIntentId}`);
+}
+
+// ============================================================
 // PAYMENT INTENT HANDLERS
 // ============================================================
 
@@ -17,6 +58,12 @@ export async function handlePaymentIntentSucceeded(
   paymentIntent: Stripe.PaymentIntent
 ): Promise<void> {
   const paymentIntentId = paymentIntent.id;
+
+  // Check if this is an application fee payment
+  if (paymentIntent.metadata?.type === 'application_fee') {
+    await handleApplicationFeePaymentSucceeded(paymentIntent);
+    return;
+  }
 
   // Find the payment by Stripe payment intent ID
   const payment = await prisma.payment.findUnique({

@@ -156,14 +156,14 @@ export default function LandingPage() {
                   <p className="lp-heading text-2xl">
                     <span ref={landlordsStat.ref}>{landlordsStat.count.toLocaleString()}</span>+
                   </p>
-                  <p className="lp-text-sm text-[var(--lp-gray-400)]">Landlords</p>
+                  <p className="lp-text-sm text-muted-foreground">Landlords</p>
                 </div>
-                <div className="w-px h-10 bg-[var(--lp-gray-200)]" />
+                <div className="w-px h-10 bg-border" />
                 <div>
                   <p className="lp-heading text-2xl">$2B+</p>
-                  <p className="lp-text-sm text-[var(--lp-gray-400)]">Managed</p>
+                  <p className="lp-text-sm text-muted-foreground">Managed</p>
                 </div>
-                <div className="w-px h-10 bg-[var(--lp-gray-200)]" />
+                <div className="w-px h-10 bg-border" />
                 <div className="flex items-center gap-1">
                   {[1, 2, 3, 4, 5].map((i) => (
                     <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
@@ -180,7 +180,7 @@ export default function LandingPage() {
                   <div className="lp-demo-dot bg-red-400" />
                   <div className="lp-demo-dot bg-yellow-400" />
                   <div className="lp-demo-dot bg-green-400" />
-                  <span className="ml-auto text-sm text-[var(--lp-gray-400)]">AI Assistant</span>
+                  <span className="ml-auto text-sm text-muted-foreground">AI Assistant</span>
                 </div>
                 <div className="lp-demo-content space-y-4">
                   {/* User Message */}
@@ -197,14 +197,14 @@ export default function LandingPage() {
                       Hi John! I&apos;ve scheduled Mike&apos;s Plumbing for tomorrow 10am-12pm.
                       You&apos;ll get a reminder in the morning. Sorry for the wait!
                     </div>
-                    <div className="w-8 h-8 rounded-full bg-[var(--lp-blue)] flex-shrink-0 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-full bg-accent flex-shrink-0 flex items-center justify-center">
                       <Bot className="w-4 h-4 text-white" />
                     </div>
                   </div>
 
                   {/* Status */}
-                  <div className="flex items-center justify-between text-sm pt-4 border-t border-[var(--lp-gray-100)]">
-                    <span className="flex items-center gap-2 text-[var(--lp-gray-400)]">
+                  <div className="flex items-center justify-between text-sm pt-4 border-t border-border">
+                    <span className="flex items-center gap-2 text-muted-foreground">
                       <Clock className="w-4 h-4" />
                       Responded in 2.5s
                     </span>
@@ -218,7 +218,7 @@ export default function LandingPage() {
 
               {/* Floating Badges */}
               <div className="lp-floating-badge lp-hide-mobile -top-4 -left-4 lp-float-delayed">
-                <Zap className="w-4 h-4 text-[var(--lp-blue)]" />
+                <Zap className="w-4 h-4 text-accent" />
                 <span>24/7 Active</span>
               </div>
               <div className="lp-floating-badge lp-hide-mobile -bottom-4 -right-4 lp-float">
@@ -233,13 +233,13 @@ export default function LandingPage() {
       {/* ========================================
           TRUST BAR
           ======================================== */}
-      <section className="py-12 border-b border-[var(--lp-gray-100)]">
+      <section className="py-12 border-b border-border">
         <div className="lp-container">
           <div className="flex flex-wrap justify-center items-center gap-10 lg:gap-16">
             {['Zillow', 'TransUnion', 'Stripe', 'Plaid'].map((partner) => (
               <span
                 key={partner}
-                className="text-xl font-semibold tracking-wide text-[var(--lp-gray-400)] hover:text-[var(--lp-gray-600)] transition-colors"
+                className="text-xl font-semibold tracking-wide text-muted-foreground hover:text-foreground transition-colors"
               >
                 {partner}
               </span>
@@ -311,23 +311,23 @@ export default function LandingPage() {
               <div className="grid grid-cols-2 gap-8">
                 <div>
                   <p className="lp-stat-value lp-stat-value-blue">80%</p>
-                  <p className="lp-text-sm text-[var(--lp-gray-400)]">Messages handled automatically</p>
+                  <p className="lp-text-sm text-muted-foreground">Messages handled automatically</p>
                 </div>
                 <div>
                   <p className="lp-stat-value lp-stat-value-blue">
                     <span ref={responseTimeStat.ref}>{responseTimeStat.count}</span>min
                   </p>
-                  <p className="lp-text-sm text-[var(--lp-gray-400)]">Avg response time (vs 4 hours)</p>
+                  <p className="lp-text-sm text-muted-foreground">Avg response time (vs 4 hours)</p>
                 </div>
                 <div>
                   <p className="lp-stat-value lp-stat-value-blue">
                     $<span ref={savingsStat.ref}>{savingsStat.count.toLocaleString()}</span>
                   </p>
-                  <p className="lp-text-sm text-[var(--lp-gray-400)]">Avg annual savings found</p>
+                  <p className="lp-text-sm text-muted-foreground">Avg annual savings found</p>
                 </div>
                 <div>
                   <p className="lp-stat-value lp-stat-value-blue">24/7</p>
-                  <p className="lp-text-sm text-[var(--lp-gray-400)]">Always available</p>
+                  <p className="lp-text-sm text-muted-foreground">Always available</p>
                 </div>
               </div>
             </div>
@@ -341,7 +341,7 @@ export default function LandingPage() {
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-300 to-blue-400 flex-shrink-0" />
                     <div>
                       <p className="font-medium text-sm mb-1">Tenant Sarah</p>
-                      <div className="p-4 rounded-2xl rounded-tl-sm bg-[var(--lp-off-white)]">
+                      <div className="p-4 rounded-2xl rounded-tl-sm bg-muted">
                         <p className="text-sm">The AC isn&apos;t working and it&apos;s 95 degrees. This is urgent!</p>
                       </div>
                     </div>
@@ -349,15 +349,15 @@ export default function LandingPage() {
 
                   <div className="flex gap-4 justify-end">
                     <div className="text-right">
-                      <p className="font-medium text-sm mb-1 text-[var(--lp-blue-dark)]">AI Assistant</p>
-                      <div className="p-4 rounded-2xl rounded-tr-sm bg-[var(--lp-blue)] text-white">
+                      <p className="font-medium text-sm mb-1 text-accent">AI Assistant</p>
+                      <div className="p-4 rounded-2xl rounded-tr-sm bg-accent text-white">
                         <p className="text-sm">
                           I&apos;m so sorry! I&apos;ve contacted CoolAir HVAC — they can come TODAY at 3pm.
                           I&apos;ll send you updates. Stay cool!
                         </p>
                       </div>
                     </div>
-                    <div className="w-10 h-10 rounded-full bg-[var(--lp-blue)] flex-shrink-0 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-full bg-accent flex-shrink-0 flex items-center justify-center">
                       <Bot className="w-5 h-5 text-white" />
                     </div>
                   </div>
@@ -450,11 +450,11 @@ export default function LandingPage() {
             <div className="lp-card lp-fade-in">
               <div className="mb-8">
                 <h3 className="lp-heading text-2xl">Free</h3>
-                <p className="lp-text-sm text-[var(--lp-gray-400)] mt-1">For getting started</p>
+                <p className="lp-text-sm text-muted-foreground mt-1">For getting started</p>
               </div>
               <div className="mb-8">
                 <span className="lp-heading text-5xl">$0</span>
-                <span className="lp-text text-[var(--lp-gray-400)]">/month</span>
+                <span className="lp-text text-muted-foreground">/month</span>
               </div>
               <ul className="space-y-4 mb-8">
                 {[
@@ -465,7 +465,7 @@ export default function LandingPage() {
                   '50 AI requests/month',
                 ].map((feature) => (
                   <li key={feature} className="flex items-center gap-3">
-                    <Check className="w-5 h-5 text-[var(--lp-blue)]" />
+                    <Check className="w-5 h-5 text-accent" />
                     <span className="lp-text-sm">{feature}</span>
                   </li>
                 ))}
@@ -482,11 +482,11 @@ export default function LandingPage() {
               </div>
               <div className="mb-8">
                 <h3 className="lp-heading text-2xl">Pro</h3>
-                <p className="lp-text-sm text-[var(--lp-gray-400)] mt-1">For serious landlords</p>
+                <p className="lp-text-sm text-muted-foreground mt-1">For serious landlords</p>
               </div>
               <div className="mb-8">
                 <span className="lp-heading text-5xl">$12</span>
-                <span className="lp-text text-[var(--lp-gray-400)]">/unit/month</span>
+                <span className="lp-text text-muted-foreground">/unit/month</span>
               </div>
               <ul className="space-y-4 mb-8">
                 {[
@@ -499,7 +499,7 @@ export default function LandingPage() {
                   'Priority support',
                 ].map((feature) => (
                   <li key={feature} className="flex items-center gap-3">
-                    <Check className="w-5 h-5 text-[var(--lp-blue)]" />
+                    <Check className="w-5 h-5 text-accent" />
                     <span className="lp-text-sm">{feature}</span>
                   </li>
                 ))}
@@ -510,9 +510,9 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <p className="text-center lp-text-sm text-[var(--lp-gray-400)] mt-8">
+          <p className="text-center lp-text-sm text-muted-foreground mt-8">
             Managing 50+ units?{' '}
-            <Link href="/contact" className="text-[var(--lp-blue-dark)] hover:underline font-medium">
+            <Link href="/contact" className="text-accent hover:underline font-medium">
               Contact us for Enterprise pricing
               <ArrowUpRight className="w-3 h-3 inline ml-1" />
             </Link>
@@ -563,10 +563,10 @@ export default function LandingPage() {
                   </div>
                   <p className="lp-text lp-text-sm mb-6">&quot;{testimonial.quote}&quot;</p>
                   <div className="flex items-center gap-3 mt-auto">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--lp-blue-light)] to-[var(--lp-blue)]" />
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent/50 to-accent" />
                     <div>
                       <p className="font-medium text-sm">{testimonial.name}</p>
-                      <p className="text-xs text-[var(--lp-gray-400)]">{testimonial.role}</p>
+                      <p className="text-xs text-muted-foreground">{testimonial.role}</p>
                     </div>
                   </div>
                 </div>

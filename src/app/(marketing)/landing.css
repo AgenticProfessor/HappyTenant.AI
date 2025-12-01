@@ -1,51 +1,72 @@
-/* Happy Tenant Landing Page - Refined Futurism Theme */
-/* White, Black, Baby Blue - Elegant & Modern */
+/* Happy Tenant Landing Page - Unified Design System */
+/* Integrates with main theme variables for consistent light/dark mode */
 
 /* ============================================
-   CUSTOM FONTS
+   CUSTOM FONTS (matches body font choice)
    ============================================ */
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
 /* ============================================
-   LANDING PAGE THEME VARIABLES
+   LANDING PAGE VARIABLES - Built on main theme
    ============================================ */
 .landing-page {
-  /* Core Colors */
-  --lp-white: #ffffff;
-  --lp-off-white: #f8fafc;
-  --lp-gray-50: #f1f5f9;
-  --lp-gray-100: #e2e8f0;
-  --lp-gray-200: #cbd5e1;
-  --lp-gray-400: #94a3b8;
-  --lp-gray-600: #475569;
-  --lp-black: #0f172a;
-  --lp-black-soft: #1e293b;
+  /* Display font for headings */
+  --font-display: 'Outfit', var(--font-sans), sans-serif;
 
-  /* Baby Blue Accent */
-  --lp-blue: #60a5fa;
-  --lp-blue-light: #93c5fd;
-  --lp-blue-lighter: #dbeafe;
-  --lp-blue-dark: #3b82f6;
-  --lp-blue-glow: rgba(96, 165, 250, 0.15);
-  --lp-blue-glow-strong: rgba(96, 165, 250, 0.25);
+  /* Semantic color mappings from main theme */
+  --lp-background: var(--background);
+  --lp-foreground: var(--foreground);
+  --lp-card: var(--card);
+  --lp-card-foreground: var(--card-foreground);
+  --lp-primary: var(--primary);
+  --lp-primary-foreground: var(--primary-foreground);
+  --lp-secondary: var(--secondary);
+  --lp-muted: var(--muted);
+  --lp-muted-foreground: var(--muted-foreground);
+  --lp-border: var(--border);
+  --lp-accent: var(--accent);
 
-  /* Typography */
-  --font-display: 'Outfit', sans-serif;
-  --font-body: 'DM Sans', sans-serif;
+  /* Light mode specific values */
+  --lp-off-white: oklch(0.97 0.002 250);
+  --lp-text-primary: var(--foreground);
+  --lp-text-secondary: var(--muted-foreground);
+  --lp-text-tertiary: oklch(0.55 0.02 250);
 
-  /* Shadows */
-  --lp-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --lp-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
-  --lp-shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.08);
-  --lp-shadow-xl: 0 24px 60px rgba(0, 0, 0, 0.1);
-  --lp-shadow-blue: 0 8px 30px rgba(96, 165, 250, 0.2);
-  --lp-shadow-float: 0 20px 50px rgba(0, 0, 0, 0.12);
+  /* Blue accent (using accent color from main theme) */
+  --lp-blue: var(--accent);
+  --lp-blue-light: oklch(0.82 0.12 200);
+  --lp-blue-lighter: oklch(0.92 0.06 200);
+  --lp-blue-dark: oklch(0.55 0.18 200);
+  --lp-blue-glow: oklch(from var(--accent) l c h / 0.15);
+  --lp-blue-glow-strong: oklch(from var(--accent) l c h / 0.25);
 
-  /* Base */
-  font-family: var(--font-body);
-  background: var(--lp-white);
-  color: var(--lp-black);
+  /* Shadows - adaptive to theme */
+  --lp-shadow-sm: 0 1px 2px oklch(0 0 0 / 0.04);
+  --lp-shadow-md: 0 4px 12px oklch(0 0 0 / 0.06);
+  --lp-shadow-lg: 0 12px 40px oklch(0 0 0 / 0.08);
+  --lp-shadow-xl: 0 24px 60px oklch(0 0 0 / 0.1);
+  --lp-shadow-blue: 0 8px 30px oklch(from var(--accent) l c h / 0.2);
+  --lp-shadow-float: 0 20px 50px oklch(0 0 0 / 0.12);
+
+  /* Base styles */
+  background: var(--lp-background);
+  color: var(--lp-foreground);
   overflow-x: hidden;
+}
+
+/* Dark mode overrides */
+:is(.dark) .landing-page {
+  --lp-off-white: oklch(0.18 0.02 250);
+  --lp-blue-lighter: oklch(0.25 0.08 200);
+  --lp-blue-glow: oklch(from var(--accent) l c h / 0.2);
+  --lp-blue-glow-strong: oklch(from var(--accent) l c h / 0.3);
+
+  /* Darker shadows for dark mode */
+  --lp-shadow-sm: 0 1px 2px oklch(0 0 0 / 0.2);
+  --lp-shadow-md: 0 4px 12px oklch(0 0 0 / 0.3);
+  --lp-shadow-lg: 0 12px 40px oklch(0 0 0 / 0.4);
+  --lp-shadow-xl: 0 24px 60px oklch(0 0 0 / 0.5);
+  --lp-shadow-float: 0 20px 50px oklch(0 0 0 / 0.4);
 }
 
 /* ============================================
@@ -61,6 +82,10 @@
   z-index: 1000;
 }
 
+:is(.dark) .landing-page::before {
+  opacity: 0.03;
+}
+
 /* ============================================
    TYPOGRAPHY
    ============================================ */
@@ -69,7 +94,7 @@
   font-weight: 600;
   line-height: 1.1;
   letter-spacing: -0.03em;
-  color: var(--lp-black);
+  color: var(--lp-foreground);
 }
 
 .lp-heading-hero {
@@ -88,19 +113,14 @@
 }
 
 .lp-text {
-  font-family: var(--font-body);
   font-size: 1.125rem;
   line-height: 1.7;
-  color: var(--lp-gray-600);
+  color: var(--lp-muted-foreground);
 }
 
 .lp-text-sm {
   font-size: 0.9375rem;
   line-height: 1.6;
-}
-
-.lp-text-blue {
-  color: var(--lp-blue-dark);
 }
 
 .lp-text-gradient {
@@ -162,13 +182,13 @@
 
 .lp-btn-primary {
   padding: 1rem 2rem;
-  background: var(--lp-black);
-  color: var(--lp-white);
+  background: var(--lp-foreground);
+  color: var(--lp-background);
   border: none;
 }
 
 .lp-btn-primary:hover {
-  background: var(--lp-black-soft);
+  opacity: 0.9;
   transform: translateY(-2px);
   box-shadow: var(--lp-shadow-lg);
 }
@@ -176,7 +196,7 @@
 .lp-btn-primary-blue {
   padding: 1rem 2rem;
   background: var(--lp-blue);
-  color: var(--lp-white);
+  color: white;
   border: none;
 }
 
@@ -189,33 +209,33 @@
 .lp-btn-secondary {
   padding: 1rem 2rem;
   background: transparent;
-  color: var(--lp-black);
-  border: 1px solid var(--lp-gray-200);
+  color: var(--lp-foreground);
+  border: 1px solid var(--lp-border);
 }
 
 .lp-btn-secondary:hover {
   border-color: var(--lp-blue);
-  color: var(--lp-blue-dark);
+  color: var(--lp-blue);
   background: var(--lp-blue-glow);
 }
 
 .lp-btn-ghost {
   padding: 0.75rem 1.25rem;
   background: transparent;
-  color: var(--lp-gray-600);
+  color: var(--lp-muted-foreground);
   border: none;
 }
 
 .lp-btn-ghost:hover {
-  color: var(--lp-blue-dark);
+  color: var(--lp-blue);
 }
 
 /* ============================================
    CARDS
    ============================================ */
 .lp-card {
-  background: var(--lp-white);
-  border: 1px solid var(--lp-gray-100);
+  background: var(--lp-card);
+  border: 1px solid var(--lp-border);
   border-radius: 24px;
   padding: 2rem;
   transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
@@ -228,24 +248,24 @@
 }
 
 .lp-card-floating {
-  background: var(--lp-white);
-  border: 1px solid var(--lp-gray-100);
+  background: var(--lp-card);
+  border: 1px solid var(--lp-border);
   border-radius: 20px;
   box-shadow: var(--lp-shadow-float);
 }
 
 .lp-card-glass {
-  background: rgba(255, 255, 255, 0.8);
+  background: oklch(from var(--lp-card) l c h / 0.8);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  border: 1px solid oklch(from var(--lp-border) l c h / 0.5);
   border-radius: 24px;
 }
 
 .lp-card-dark {
-  background: var(--lp-black);
-  border: 1px solid var(--lp-black-soft);
-  color: var(--lp-white);
+  background: var(--lp-foreground);
+  border: 1px solid var(--lp-border);
+  color: var(--lp-background);
 }
 
 /* ============================================
@@ -265,15 +285,20 @@
   color: var(--lp-blue-dark);
 }
 
+:is(.dark) .lp-badge {
+  background: oklch(from var(--accent) l c h / 0.2);
+  color: var(--lp-blue-light);
+}
+
 .lp-badge-outline {
   background: transparent;
-  border: 1px solid var(--lp-gray-200);
-  color: var(--lp-gray-600);
+  border: 1px solid var(--lp-border);
+  color: var(--lp-muted-foreground);
 }
 
 .lp-badge-dark {
-  background: var(--lp-black);
-  color: var(--lp-white);
+  background: var(--lp-foreground);
+  color: var(--lp-background);
 }
 
 /* ============================================
@@ -291,6 +316,11 @@
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+:is(.dark) .lp-icon-box {
+  background: oklch(from var(--accent) l c h / 0.2);
+  color: var(--lp-blue-light);
+}
+
 .lp-icon-box-sm {
   width: 44px;
   height: 44px;
@@ -299,7 +329,7 @@
 
 .lp-icon-box:hover {
   background: var(--lp-blue);
-  color: var(--lp-white);
+  color: white;
   transform: scale(1.05);
 }
 
@@ -308,7 +338,7 @@
    ============================================ */
 .lp-hero-bg {
   position: relative;
-  background: linear-gradient(180deg, var(--lp-white) 0%, var(--lp-off-white) 100%);
+  background: linear-gradient(180deg, var(--lp-background) 0%, var(--lp-off-white) 100%);
   overflow: hidden;
 }
 
@@ -339,12 +369,16 @@
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(var(--lp-gray-100) 1px, transparent 1px),
-    linear-gradient(90deg, var(--lp-gray-100) 1px, transparent 1px);
+    linear-gradient(var(--lp-border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--lp-border) 1px, transparent 1px);
   background-size: 80px 80px;
   opacity: 0.5;
   mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 20%, transparent 70%);
   -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 20%, transparent 70%);
+}
+
+:is(.dark) .lp-grid-pattern {
+  opacity: 0.3;
 }
 
 /* ============================================
@@ -427,7 +461,7 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.4),
+    oklch(1 0 0 / 0.4),
     transparent
   );
   animation: lpShimmer 2.5s ease-in-out infinite;
@@ -484,11 +518,15 @@
   font-size: clamp(2.5rem, 5vw, 4rem);
   font-weight: 700;
   letter-spacing: -0.03em;
-  color: var(--lp-black);
+  color: var(--lp-foreground);
 }
 
 .lp-stat-value-blue {
   color: var(--lp-blue-dark);
+}
+
+:is(.dark) .lp-stat-value-blue {
+  color: var(--lp-blue-light);
 }
 
 /* ============================================
@@ -497,7 +535,7 @@
 .lp-divider {
   width: 100%;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--lp-gray-200), transparent);
+  background: linear-gradient(90deg, transparent, var(--lp-border), transparent);
 }
 
 /* ============================================
@@ -508,20 +546,20 @@
 }
 
 .lp-bg-dark {
-  background: var(--lp-black);
-  color: var(--lp-white);
+  background: var(--lp-foreground);
+  color: var(--lp-background);
 }
 
 .lp-bg-dark .lp-heading {
-  color: var(--lp-white);
+  color: var(--lp-background);
 }
 
 .lp-bg-dark .lp-text {
-  color: var(--lp-gray-400);
+  color: var(--lp-muted-foreground);
 }
 
 .lp-bg-gradient {
-  background: linear-gradient(135deg, var(--lp-blue-lighter) 0%, var(--lp-white) 50%, var(--lp-off-white) 100%);
+  background: linear-gradient(135deg, var(--lp-blue-lighter) 0%, var(--lp-background) 50%, var(--lp-off-white) 100%);
 }
 
 /* ============================================
@@ -592,7 +630,7 @@
   left: 10%;
   right: 10%;
   height: 2px;
-  background: linear-gradient(90deg, var(--lp-gray-200), var(--lp-blue-light), var(--lp-gray-200));
+  background: linear-gradient(90deg, var(--lp-border), var(--lp-blue-light), var(--lp-border));
   display: none;
 }
 
@@ -624,12 +662,13 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  background: var(--lp-white);
+  background: var(--lp-card);
   border-radius: 100px;
   box-shadow: var(--lp-shadow-lg);
   font-size: 0.875rem;
   font-weight: 500;
   white-space: nowrap;
+  color: var(--lp-foreground);
 }
 
 /* ============================================
@@ -690,7 +729,7 @@
 }
 
 .landing-page::-webkit-scrollbar-thumb {
-  background: var(--lp-gray-300);
+  background: var(--lp-muted-foreground);
   border-radius: 4px;
 }
 
@@ -702,8 +741,8 @@
    DEMO CARD SPECIAL STYLES
    ============================================ */
 .lp-demo-card {
-  background: var(--lp-white);
-  border: 1px solid var(--lp-gray-100);
+  background: var(--lp-card);
+  border: 1px solid var(--lp-border);
   border-radius: 24px;
   box-shadow: var(--lp-shadow-xl);
   overflow: hidden;
@@ -712,7 +751,7 @@
 .lp-demo-header {
   padding: 1rem 1.5rem;
   background: var(--lp-off-white);
-  border-bottom: 1px solid var(--lp-gray-100);
+  border-bottom: 1px solid var(--lp-border);
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -739,14 +778,14 @@
 
 .lp-message-user {
   background: var(--lp-off-white);
-  color: var(--lp-black);
+  color: var(--lp-foreground);
   border-bottom-left-radius: 4px;
   margin-right: auto;
 }
 
 .lp-message-ai {
   background: var(--lp-blue);
-  color: var(--lp-white);
+  color: white;
   border-bottom-right-radius: 4px;
   margin-left: auto;
 }
@@ -755,9 +794,13 @@
    CTA SECTION
    ============================================ */
 .lp-cta-gradient {
-  background: linear-gradient(135deg, var(--lp-black) 0%, var(--lp-black-soft) 100%);
+  background: linear-gradient(135deg, var(--lp-foreground) 0%, oklch(from var(--foreground) calc(l + 0.1) c h) 100%);
   position: relative;
   overflow: hidden;
+}
+
+:is(.dark) .lp-cta-gradient {
+  background: linear-gradient(135deg, oklch(0.15 0.02 250) 0%, oklch(0.20 0.02 250) 100%);
 }
 
 .lp-cta-gradient::before {
@@ -778,6 +821,55 @@
   left: -25%;
   width: 60%;
   height: 150%;
-  background: radial-gradient(ellipse, rgba(96, 165, 250, 0.1) 0%, transparent 60%);
+  background: radial-gradient(ellipse, oklch(from var(--accent) l c h / 0.1) 0%, transparent 60%);
   pointer-events: none;
+}
+
+/* ============================================
+   TRUST BAR SECTION
+   ============================================ */
+.landing-page section.py-12 {
+  border-color: var(--lp-border);
+}
+
+/* Fix check mark colors in pricing */
+.lp-card svg.text-\[var\(--lp-blue\)\] {
+  color: var(--lp-blue);
+}
+
+/* Action taken card in AI showcase */
+.landing-page .bg-green-50 {
+  background: oklch(0.95 0.05 160);
+}
+
+:is(.dark) .landing-page .bg-green-50 {
+  background: oklch(0.25 0.05 160);
+}
+
+.landing-page .border-green-100 {
+  border-color: oklch(0.90 0.03 160);
+}
+
+:is(.dark) .landing-page .border-green-100 {
+  border-color: oklch(0.30 0.05 160);
+}
+
+.landing-page .text-green-800 {
+  color: oklch(0.35 0.12 160);
+}
+
+:is(.dark) .landing-page .text-green-800 {
+  color: oklch(0.80 0.12 160);
+}
+
+.landing-page .text-green-600 {
+  color: oklch(0.50 0.15 160);
+}
+
+:is(.dark) .landing-page .text-green-600 {
+  color: oklch(0.70 0.12 160);
+}
+
+.landing-page .text-green-500 {
+  color: oklch(0.65 0.18 160);
 }

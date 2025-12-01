@@ -18,18 +18,23 @@ export interface AIMessage {
   toolCallId?: string;
 }
 
+// Property definition for AI tool parameters
+export interface AIToolPropertyDefinition {
+  type: string;
+  description?: string;
+  enum?: string[];
+  items?: AIToolPropertyDefinition;
+  properties?: Record<string, AIToolPropertyDefinition>;
+  required?: string[];
+}
+
 // Tool/Function definition for AI
 export interface AIToolDefinition {
   name: string;
   description: string;
   parameters: {
     type: 'object';
-    properties: Record<string, {
-      type: string;
-      description?: string;
-      enum?: string[];
-      items?: { type: string };
-    }>;
+    properties: Record<string, AIToolPropertyDefinition>;
     required?: string[];
   };
 }

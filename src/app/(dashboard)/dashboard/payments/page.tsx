@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,7 +29,6 @@ import {
   Filter,
   MoreHorizontal,
   Download,
-  ChevronDown,
   TrendingUp,
   TrendingDown,
   CheckCircle2,
@@ -40,47 +40,66 @@ import {
   ArrowDownRight,
   Sparkles,
 } from 'lucide-react';
-import { mockTransactions, mockDashboardStats, mockTenants, mockLeases } from '@/data/mock-data';
+import {
+  usePayments,
+  type Payment,
+  type PaymentStatus,
+  getPaymentStatusColor,
+  getPaymentMethodLabel,
+  formatDate,
+} from '@/hooks/api/use-payments';
+import { useLeases, getPrimaryTenant } from '@/hooks/api/use-leases';
 import { useStewardContext } from '@/hooks/use-steward-context';
 
 export default function PaymentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
-  const [filterType, setFilterType] = useState<string | null>(null);
 
-  const stats = mockDashboardStats;
+  // Fetch payments from API
+  const { data: paymentsData, isLoading: isLoadingPayments } = usePayments();
 
-  const filteredTransactions = mockTransactions.filter((tx) => {
-    const matchesSearch = tx.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = !filterStatus || tx.status === filterStatus;
-    const matchesType = !filterType || tx.type === filterType;
-    return matchesSearch && matchesStatus && matchesType;
-  });
+  // Fetch active leases for upcoming payments
+  const { data: leasesData, isLoading: isLoadingLeases } = useLeases({ status: 'ACTIVE' });
 
-  const totalIncome = mockTransactions
-    .filter((tx) => tx.type === 'income' && tx.status === 'completed')
-    .reduce((sum, tx) => sum + tx.amount, 0);
+  const payments = paymentsData?.payments || [];
+  const summary = paymentsData?.summary;
+  const leases = leasesData?.leases || [];
 
-  const totalExpenses = mockTransactions
-    .filter((tx) => tx.type === 'expense' && tx.status === 'completed')
-    .reduce((sum, tx) => sum + tx.amount, 0);
+  // Filter payments based on search and status
+  const filteredPayments = useMemo(() => {
+    return payments.filter((payment) => {
+      const tenantName = `${payment.tenant.firstName} ${payment.tenant.lastName}`;
+      const propertyName = payment.lease.unit.property.name;
+      const matchesSearch =
+        tenantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        propertyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (payment.referenceNumber || '').toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = !filterStatus || payment.status === filterStatus;
+      return matchesSearch && matchesStatus;
+    });
+  }, [payments, searchQuery, filterStatus]);
 
-  const pendingPayments = mockTransactions
-    .filter((tx) => tx.status === 'pending')
-    .reduce((sum, tx) => sum + tx.amount, 0);
+  // Calculate stats
+  const totalReceived = summary?.totalReceived || 0;
+  const totalPending = summary?.totalPending || 0;
+  const expectedRent = leases.reduce((sum, lease) => sum + lease.rentAmount, 0);
+  const collectionRate = expectedRent > 0 ? Math.round((totalReceived / expectedRent) * 100) : 0;
+
+  // Get current month name
+  const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   // Register Steward context
   useStewardContext({
     type: 'page',
-    name: 'accounting',
-    description: 'Financial overview including income, expenses, and pending payments',
+    name: 'payments',
+    description: 'Payment tracking and rent collection overview',
     data: {
-      totalIncome,
-      totalExpenses,
-      netIncome: totalIncome - totalExpenses,
-      pendingPayments,
-      collectionRate: stats.collectionRate,
-      outstandingRent: stats.outstandingRent,
+      totalReceived,
+      totalPending,
+      expectedRent,
+      collectionRate,
+      paymentsCount: payments.length,
+      activeLeases: leases.length,
     },
     url: '/dashboard/payments',
   });
@@ -92,7 +111,7 @@ export default function PaymentsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Payments</h1>
           <p className="text-muted-foreground">
-            Track rent collection, expenses, and financial overview
+            Track rent collection, payments, and financial overview
           </p>
         </div>
         <div className="flex gap-2">
@@ -112,7 +131,7 @@ export default function PaymentsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            November 2024 Rent Collection
+            {currentMonth} Rent Collection
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -120,26 +139,42 @@ export default function PaymentsPage() {
             <div className="lg:col-span-2">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium">Collection Progress</span>
-                <span className="text-sm text-muted-foreground">{stats.collectionRate}%</span>
+                <span className="text-sm text-muted-foreground">{collectionRate}%</span>
               </div>
-              <Progress value={stats.collectionRate} className="h-3 mb-4" />
+              {isLoadingPayments ? (
+                <Skeleton className="h-3 w-full mb-4" />
+              ) : (
+                <Progress value={collectionRate} className="h-3 mb-4" />
+              )}
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
-                  <p className="text-2xl font-bold text-green-600">
-                    ${stats.collectedRent.toLocaleString()}
-                  </p>
+                  {isLoadingPayments ? (
+                    <Skeleton className="h-8 w-24 mx-auto mb-1" />
+                  ) : (
+                    <p className="text-2xl font-bold text-green-600">
+                      ${totalReceived.toLocaleString()}
+                    </p>
+                  )}
                   <p className="text-xs text-muted-foreground">Collected</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-amber-600">
-                    ${stats.outstandingRent.toLocaleString()}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Outstanding</p>
+                  {isLoadingPayments ? (
+                    <Skeleton className="h-8 w-24 mx-auto mb-1" />
+                  ) : (
+                    <p className="text-2xl font-bold text-amber-600">
+                      ${totalPending.toLocaleString()}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground">Pending</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-primary">
-                    ${(stats.collectedRent + stats.outstandingRent).toLocaleString()}
-                  </p>
+                  {isLoadingLeases ? (
+                    <Skeleton className="h-8 w-24 mx-auto mb-1" />
+                  ) : (
+                    <p className="text-2xl font-bold text-primary">
+                      ${expectedRent.toLocaleString()}
+                    </p>
+                  )}
                   <p className="text-xs text-muted-foreground">Expected</p>
                 </div>
               </div>
@@ -148,7 +183,9 @@ export default function PaymentsPage() {
               <Sparkles className="h-8 w-8 text-primary mb-2" />
               <p className="text-sm font-medium text-center">AI Collection Assistant</p>
               <p className="text-xs text-muted-foreground text-center mt-1">
-                2 tenants may need payment reminders
+                {totalPending > 0
+                  ? `${payments.filter((p) => p.status === 'PENDING').length} payments pending review`
+                  : 'All payments up to date'}
               </p>
               <Button size="sm" className="mt-3">
                 Send Reminders
@@ -163,49 +200,22 @@ export default function PaymentsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Income
+              Total Received
             </CardTitle>
             <ArrowUpRight className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              ${totalIncome.toLocaleString()}
-            </div>
+            {isLoadingPayments ? (
+              <Skeleton className="h-8 w-32" />
+            ) : (
+              <div className="text-2xl font-bold text-green-600">
+                ${totalReceived.toLocaleString()}
+              </div>
+            )}
             <p className="text-xs text-muted-foreground flex items-center mt-1">
               <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
-              +12% from last month
+              Completed payments
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Expenses
-            </CardTitle>
-            <ArrowDownRight className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              ${totalExpenses.toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground flex items-center mt-1">
-              <TrendingDown className="h-3 w-3 mr-1 text-green-500" />
-              -5% from last month
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Net Income
-            </CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">
-              ${(totalIncome - totalExpenses).toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">This month</p>
           </CardContent>
         </Card>
         <Card>
@@ -216,30 +226,68 @@ export default function PaymentsPage() {
             <Clock className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-amber-600">
-              ${pendingPayments.toLocaleString()}
-            </div>
+            {isLoadingPayments ? (
+              <Skeleton className="h-8 w-32" />
+            ) : (
+              <div className="text-2xl font-bold text-amber-600">
+                ${totalPending.toLocaleString()}
+              </div>
+            )}
             <p className="text-xs text-muted-foreground">
-              {mockTransactions.filter((tx) => tx.status === 'pending').length} transactions
+              {payments.filter((p) => p.status === 'PENDING').length} pending payments
             </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Active Leases
+            </CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {isLoadingLeases ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <div className="text-2xl font-bold text-primary">{leases.length}</div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              ${expectedRent.toLocaleString()}/month expected
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Collection Rate
+            </CardTitle>
+            <TrendingUp className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            {isLoadingPayments || isLoadingLeases ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <div className="text-2xl font-bold text-primary">{collectionRate}%</div>
+            )}
+            <p className="text-xs text-muted-foreground">This month</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Transactions */}
+      {/* Payments Table */}
       <Tabs defaultValue="all" className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <TabsList>
             <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="income">Income</TabsTrigger>
-            <TabsTrigger value="expenses">Expenses</TabsTrigger>
+            <TabsTrigger value="completed">Completed</TabsTrigger>
+            <TabsTrigger value="pending">Pending</TabsTrigger>
           </TabsList>
           <div className="flex-1" />
           <div className="flex gap-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search transactions..."
+                placeholder="Search payments..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 w-[200px]"
@@ -255,13 +303,13 @@ export default function PaymentsPage() {
                 <DropdownMenuItem onClick={() => setFilterStatus(null)}>
                   All Status
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilterStatus('completed')}>
+                <DropdownMenuItem onClick={() => setFilterStatus('COMPLETED')}>
                   Completed
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilterStatus('pending')}>
+                <DropdownMenuItem onClick={() => setFilterStatus('PENDING')}>
                   Pending
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilterStatus('failed')}>
+                <DropdownMenuItem onClick={() => setFilterStatus('FAILED')}>
                   Failed
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -270,29 +318,45 @@ export default function PaymentsPage() {
         </div>
 
         <TabsContent value="all">
-          <TransactionsTable transactions={filteredTransactions} />
+          <PaymentsTable payments={filteredPayments} isLoading={isLoadingPayments} />
         </TabsContent>
-        <TabsContent value="income">
-          <TransactionsTable transactions={filteredTransactions.filter((tx) => tx.type === 'income')} />
+        <TabsContent value="completed">
+          <PaymentsTable
+            payments={filteredPayments.filter((p) => p.status === 'COMPLETED')}
+            isLoading={isLoadingPayments}
+          />
         </TabsContent>
-        <TabsContent value="expenses">
-          <TransactionsTable transactions={filteredTransactions.filter((tx) => tx.type === 'expense')} />
+        <TabsContent value="pending">
+          <PaymentsTable
+            payments={filteredPayments.filter((p) => p.status === 'PENDING')}
+            isLoading={isLoadingPayments}
+          />
         </TabsContent>
       </Tabs>
 
-      {/* Upcoming Payments */}
+      {/* Upcoming Due Dates */}
       <Card>
         <CardHeader>
           <CardTitle>Upcoming Due Dates</CardTitle>
-          <CardDescription>Rent payments due in the next 7 days</CardDescription>
+          <CardDescription>Rent payments due soon</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {mockLeases
-              .filter((l) => l.status === 'active')
-              .slice(0, 4)
-              .map((lease) => {
-                const tenant = mockTenants.find((t) => t.id === lease.tenantId);
+          {isLoadingLeases ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          ) : leases.length > 0 ? (
+            <div className="space-y-3">
+              {leases.slice(0, 5).map((lease) => {
+                const tenant = getPrimaryTenant(lease);
+                const dueDate = new Date();
+                dueDate.setDate(lease.rentDueDay);
+                if (dueDate < new Date()) {
+                  dueDate.setMonth(dueDate.getMonth() + 1);
+                }
+
                 return (
                   <div
                     key={lease.id}
@@ -303,92 +367,126 @@ export default function PaymentsPage() {
                         <CreditCard className="h-5 w-5 text-primary" />
                       </div>
                       <div>
-                        <p className="font-medium">{tenant?.name || 'Unknown Tenant'}</p>
-                        <p className="text-sm text-muted-foreground">Due Dec 1, 2024</p>
+                        <p className="font-medium">
+                          {tenant
+                            ? `${tenant.firstName} ${tenant.lastName}`
+                            : 'Unknown Tenant'}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Due{' '}
+                          {dueDate.toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                        </p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="font-semibold">${lease.rentAmount.toLocaleString()}</p>
                       <Badge variant="outline" className="text-xs">
-                        Monthly Rent
+                        {lease.unit.property.name} - Unit {lease.unit.unitNumber}
                       </Badge>
                     </div>
                   </div>
                 );
               })}
-          </div>
+            </div>
+          ) : (
+            <p className="text-center text-muted-foreground py-6">No active leases</p>
+          )}
         </CardContent>
       </Card>
     </div>
   );
 }
 
-function TransactionsTable({ transactions }: { transactions: typeof mockTransactions }) {
+function PaymentsTable({
+  payments,
+  isLoading,
+}: {
+  payments: Payment[];
+  isLoading: boolean;
+}) {
+  if (isLoading) {
+    return (
+      <Card>
+        <div className="p-6 space-y-4">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
+      </Card>
+    );
+  }
+
+  if (payments.length === 0) {
+    return (
+      <Card>
+        <div className="p-8 text-center">
+          <DollarSign className="h-12 w-12 mx-auto text-muted-foreground/50" />
+          <h3 className="mt-4 font-semibold">No payments found</h3>
+          <p className="text-muted-foreground mt-1">
+            Payments will appear here once recorded
+          </p>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Description</TableHead>
+            <TableHead>Tenant</TableHead>
+            <TableHead>Property</TableHead>
             <TableHead>Date</TableHead>
-            <TableHead>Category</TableHead>
+            <TableHead>Method</TableHead>
             <TableHead>Amount</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="w-[50px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {transactions.map((tx) => (
-            <TableRow key={tx.id}>
+          {payments.map((payment) => (
+            <TableRow key={payment.id}>
               <TableCell>
                 <div className="flex items-center gap-3">
-                  <div className={`h-8 w-8 rounded-full flex items-center justify-center ${tx.type === 'income' ? 'bg-green-100' : 'bg-red-100'
-                    }`}>
-                    {tx.type === 'income' ? (
-                      <ArrowUpRight className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <ArrowDownRight className="h-4 w-4 text-red-600" />
-                    )}
+                  <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                    <ArrowUpRight className="h-4 w-4 text-green-600" />
                   </div>
                   <div>
-                    <p className="font-medium">{tx.description}</p>
-                    {tx.propertyId && (
-                      <p className="text-xs text-muted-foreground">Property {tx.propertyId}</p>
-                    )}
+                    <p className="font-medium">
+                      {payment.tenant.firstName} {payment.tenant.lastName}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {payment.tenant.email}
+                    </p>
                   </div>
                 </div>
               </TableCell>
               <TableCell>
-                {new Date(tx.date).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                })}
+                <p className="text-sm">
+                  {payment.lease.unit.property.name}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Unit {payment.lease.unit.unitNumber}
+                </p>
               </TableCell>
+              <TableCell>{formatDate(payment.receivedAt)}</TableCell>
               <TableCell>
                 <Badge variant="outline" className="capitalize">
-                  {tx.category}
+                  {getPaymentMethodLabel(payment.method)}
                 </Badge>
               </TableCell>
               <TableCell>
-                <span className={`font-semibold ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                  {tx.type === 'income' ? '+' : '-'}${tx.amount.toLocaleString()}
+                <span className="font-semibold text-green-600">
+                  +${payment.amount.toLocaleString()}
                 </span>
               </TableCell>
               <TableCell>
-                <Badge
-                  variant={
-                    tx.status === 'completed' ? 'default' :
-                      tx.status === 'pending' ? 'secondary' : 'destructive'
-                  }
-                  className="gap-1"
-                >
-                  {tx.status === 'completed' && <CheckCircle2 className="h-3 w-3" />}
-                  {tx.status === 'pending' && <Clock className="h-3 w-3" />}
-                  {(tx.status as string) === 'failed' && <AlertCircle className="h-3 w-3" />}
-                  {tx.status}
-                </Badge>
+                <StatusBadge status={payment.status} />
               </TableCell>
               <TableCell>
                 <DropdownMenu>
@@ -409,5 +507,24 @@ function TransactionsTable({ transactions }: { transactions: typeof mockTransact
         </TableBody>
       </Table>
     </Card>
+  );
+}
+
+function StatusBadge({ status }: { status: PaymentStatus }) {
+  const config = {
+    PENDING: { icon: Clock, variant: 'secondary' as const },
+    COMPLETED: { icon: CheckCircle2, variant: 'default' as const },
+    FAILED: { icon: AlertCircle, variant: 'destructive' as const },
+    REFUNDED: { icon: ArrowDownRight, variant: 'outline' as const },
+    CANCELLED: { icon: AlertCircle, variant: 'outline' as const },
+  };
+
+  const { icon: Icon, variant } = config[status] || config.PENDING;
+
+  return (
+    <Badge variant={variant} className="gap-1 capitalize">
+      <Icon className="h-3 w-3" />
+      {status.toLowerCase()}
+    </Badge>
   );
 }

@@ -7,12 +7,14 @@ import { z } from 'zod';
  * They ensure data integrity and provide type-safe form validation.
  */
 
-// Unit status enum
+// Unit status enum - matches Prisma UnitStatus
 export const unitStatuses = [
-  'vacant',
-  'occupied',
-  'maintenance',
-  'reserved',
+  'VACANT',
+  'OCCUPIED',
+  'NOTICE_GIVEN',
+  'UNDER_APPLICATION',
+  'MAINTENANCE',
+  'OFF_MARKET',
 ] as const;
 
 // Common unit amenities
@@ -68,17 +70,14 @@ export const unitSchema = z.object({
   squareFeet: z
     .number()
     .int('Square feet must be a whole number')
-    .min(1, 'Square feet must be at least 1')
-    .optional()
-    .or(z.literal(0))
-    .transform(val => val === 0 ? undefined : val),
+    .min(0, 'Square feet cannot be negative')
+    .optional(),
 
   floorNumber: z
     .number()
     .int('Floor number must be a whole number')
-    .optional()
-    .or(z.literal(0))
-    .transform(val => val === 0 ? undefined : val),
+    .min(0, 'Floor number cannot be negative')
+    .optional(),
 
   marketRent: z
     .number()
@@ -89,22 +88,17 @@ export const unitSchema = z.object({
     .number()
     .min(0, 'Deposit amount cannot be negative')
     .max(1000000, 'Deposit amount must be less than $1,000,000')
-    .optional()
-    .or(z.literal(0))
-    .transform(val => val === 0 ? undefined : val),
+    .optional(),
 
   status: z.enum(unitStatuses, {
-    required_error: 'Status is required',
-    invalid_type_error: 'Please select a valid status',
+    message: 'Please select a valid status',
   }),
 
   features: z
-    .array(z.string())
-    .default([]),
+    .array(z.string()),
 
   isListed: z
-    .boolean()
-    .default(false),
+    .boolean(),
 
   listingDescription: z
     .string()
@@ -127,7 +121,7 @@ export const defaultUnitValues: Partial<UnitFormValues> = {
   bedrooms: 1,
   bathrooms: 1,
   marketRent: 0,
-  status: 'vacant',
+  status: 'VACANT',
   features: [],
   isListed: false,
   listingDescription: '',

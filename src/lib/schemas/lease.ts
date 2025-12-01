@@ -30,19 +30,16 @@ export const leaseSchema = z
     leaseType: leaseTypeEnum,
 
     startDate: z.date({
-      required_error: 'Start date is required',
-      invalid_type_error: 'Please enter a valid start date',
+      message: 'Please enter a valid start date',
     }),
 
     endDate: z.date({
-      required_error: 'End date is required',
-      invalid_type_error: 'Please enter a valid end date',
+      message: 'Please enter a valid end date',
     }).optional(),
 
     rentAmount: z
       .number({
-        required_error: 'Rent amount is required',
-        invalid_type_error: 'Please enter a valid rent amount',
+        message: 'Please enter a valid rent amount',
       })
       .positive('Rent amount must be greater than 0')
       .max(999999, 'Rent amount must be less than $999,999'),

@@ -80,7 +80,7 @@ const propertyPerformance = [
 const expenseBreakdown = [
   { category: 'Maintenance', amount: 3200, percentage: 35, color: 'bg-blue-500' },
   { category: 'Utilities', amount: 1800, percentage: 20, color: 'bg-green-500' },
-  { category: 'Insurance', amount: 1500, percentage: 16, color: 'bg-yellow-500' },
+  { category: 'Insurance', amount: 1500, percentage: 16, color: 'bg-warning/100' },
   { category: 'Property Tax', amount: 1200, percentage: 13, color: 'bg-purple-500' },
   { category: 'Management', amount: 900, percentage: 10, color: 'bg-orange-500' },
   { category: 'Other', amount: 600, percentage: 6, color: 'bg-gray-500' },
@@ -134,8 +134,8 @@ export default function InsightsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Insights</h1>
-          <p className="text-slate-500 mt-1">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Insights</h1>
+          <p className="text-muted-foreground mt-1">
             Financial analytics and portfolio performance
           </p>
         </div>
@@ -232,7 +232,7 @@ export default function InsightsPage() {
                 <div className="space-y-6">
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm text-slate-300">Revenue</span>
+                      <span className="text-sm text-muted-foreground">Revenue</span>
                       <span className="text-emerald-400 text-sm font-medium flex items-center">
                         <ArrowUpRight className="h-3 w-3 mr-1" />
                         {analysis?.monthOverMonth.revenue}%
@@ -244,7 +244,7 @@ export default function InsightsPage() {
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm text-slate-300">Expenses</span>
+                      <span className="text-sm text-muted-foreground">Expenses</span>
                       <span className="text-amber-400 text-sm font-medium flex items-center">
                         <ArrowUpRight className="h-3 w-3 mr-1" />
                         {analysis?.monthOverMonth.expenses}%
@@ -256,7 +256,7 @@ export default function InsightsPage() {
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm text-slate-300">Net Operating Income</span>
+                      <span className="text-sm text-muted-foreground">Net Operating Income</span>
                       <span className="text-blue-400 text-sm font-medium flex items-center">
                         <ArrowUpRight className="h-3 w-3 mr-1" />
                         {analysis?.monthOverMonth.noi}%
@@ -290,8 +290,8 @@ export default function InsightsPage() {
                   <span className="text-xs text-muted-foreground">vs last month</span>
                 </div>
               </div>
-              <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-                <DollarSign className="h-6 w-6 text-green-600" />
+              <div className="h-12 w-12 rounded-full bg-success/20 flex items-center justify-center">
+                <DollarSign className="h-6 w-6 text-success" />
               </div>
             </div>
           </CardContent>
@@ -309,8 +309,8 @@ export default function InsightsPage() {
                   <span className="text-xs text-muted-foreground">vs last month</span>
                 </div>
               </div>
-              <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
-                <Wallet className="h-6 w-6 text-red-600" />
+              <div className="h-12 w-12 rounded-full bg-destructive/20 flex items-center justify-center">
+                <Wallet className="h-6 w-6 text-destructive" />
               </div>
             </div>
           </CardContent>
@@ -328,8 +328,8 @@ export default function InsightsPage() {
                   <span className="text-xs text-muted-foreground">vs last month</span>
                 </div>
               </div>
-              <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-                <TrendingUp className="h-6 w-6 text-blue-600" />
+              <div className="h-12 w-12 rounded-full bg-accent/20 flex items-center justify-center">
+                <TrendingUp className="h-6 w-6 text-accent" />
               </div>
             </div>
           </CardContent>
@@ -345,8 +345,8 @@ export default function InsightsPage() {
                   <span className="text-sm text-muted-foreground">{occupiedUnits}/{totalUnits} units</span>
                 </div>
               </div>
-              <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
-                <Home className="h-6 w-6 text-purple-600" />
+              <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center">
+                <Home className="h-6 w-6 text-primary" />
               </div>
             </div>
           </CardContent>
@@ -505,13 +505,13 @@ export default function InsightsPage() {
                 <p className="text-sm font-medium mb-3">Overdue Payments</p>
                 <div className="space-y-3">
                   {delinquentTenants.map((tenant, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                    <div key={index} className="flex items-center justify-between p-3 bg-destructive/10 rounded-lg">
                       <div>
                         <p className="font-medium text-sm">{tenant.name}</p>
                         <p className="text-xs text-muted-foreground">{tenant.property}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium text-red-600">${tenant.amount.toLocaleString()}</p>
+                        <p className="font-medium text-destructive">${tenant.amount.toLocaleString()}</p>
                         <p className="text-xs text-muted-foreground">{tenant.daysLate} days late</p>
                       </div>
                     </div>
@@ -544,11 +544,11 @@ export default function InsightsPage() {
                   <div className="grid grid-cols-3 gap-4 text-sm">
                     <div>
                       <p className="text-muted-foreground text-xs">Revenue</p>
-                      <p className="font-medium text-green-600">${property.revenue.toLocaleString()}</p>
+                      <p className="font-medium text-success">${property.revenue.toLocaleString()}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground text-xs">Expenses</p>
-                      <p className="font-medium text-red-600">${property.expenses.toLocaleString()}</p>
+                      <p className="font-medium text-destructive">${property.expenses.toLocaleString()}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground text-xs">NOI</p>
@@ -576,14 +576,14 @@ export default function InsightsPage() {
               <p className="text-muted-foreground">Vacant Units</p>
             </div>
             <div className="space-y-2">
-              <div className="p-3 bg-yellow-50 rounded-lg">
+              <div className="p-3 bg-warning/10 rounded-lg">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">123 Oak St, Unit 3B</span>
                   <Badge variant="outline">15 days</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">Listed at $1,600/mo</p>
               </div>
-              <div className="p-3 bg-yellow-50 rounded-lg">
+              <div className="p-3 bg-warning/10 rounded-lg">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">555 Cedar Ln, Unit 1A</span>
                   <Badge variant="outline">8 days</Badge>
@@ -594,7 +594,7 @@ export default function InsightsPage() {
             <div className="mt-4 pt-4 border-t">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Potential Lost Revenue</span>
-                <span className="font-medium text-red-600">$3,450/mo</span>
+                <span className="font-medium text-destructive">$3,450/mo</span>
               </div>
             </div>
           </CardContent>
@@ -613,7 +613,7 @@ export default function InsightsPage() {
                   <div key={month} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                     <span className="font-medium">{month}</span>
                     <div className="text-right">
-                      <p className="font-medium text-green-600">${projected.toLocaleString()}</p>
+                      <p className="font-medium text-success">${projected.toLocaleString()}</p>
                       <p className="text-xs text-muted-foreground">Projected NOI</p>
                     </div>
                   </div>

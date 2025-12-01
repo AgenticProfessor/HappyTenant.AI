@@ -18,6 +18,7 @@ const applicationUpdateSchema = z.object({
   notes: z.string().optional(),
   decisionReason: z.string().optional(),
   applicationFeePaid: z.boolean().optional(),
+  statusReason: z.string().optional(),
 })
 
 type RouteParams = {
@@ -43,6 +44,7 @@ export async function GET(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
+    // Try to find application by organization (either through unit or direct organizationId)
     const application = await prisma.application.findFirst({
       where: {
         id,
@@ -58,6 +60,13 @@ export async function GET(request: Request, { params }: RouteParams) {
             property: true,
           },
         },
+        applicationLink: true,
+        applicationNotes: {
+          orderBy: { createdAt: 'desc' },
+        },
+        statusHistory: {
+          orderBy: { createdAt: 'desc' },
+        },
         screeningResults: true,
         documents: {
           orderBy: { uploadedAt: 'desc' },
@@ -69,51 +78,8 @@ export async function GET(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Application not found' }, { status: 404 })
     }
 
-    // Calculate application score (simple example based on income-to-rent ratio)
-    let score = 0
-    const unit = application.unit
-    const monthlyRent = Number(unit.marketRent)
-
-    if (application.monthlyIncome) {
-      const incomeToRentRatio = Number(application.monthlyIncome) / monthlyRent
-      if (incomeToRentRatio >= 3) score += 30
-      else if (incomeToRentRatio >= 2.5) score += 20
-      else if (incomeToRentRatio >= 2) score += 10
-    }
-
-    // Score based on employment info
-    if (application.employerName && application.jobTitle) {
-      score += 20 // Has verifiable employment
-    }
-
-    // Score based on current address info (rental history proxy)
-    if (application.currentAddress && application.currentLandlordName) {
-      score += 20 // Has verifiable rental history
-    } else if (application.currentAddress) {
-      score += 10
-    }
-
-    if (application.references && Array.isArray(application.references)) {
-      const refsLength = (application.references as Array<unknown>).length
-      if (refsLength >= 2) score += 10
-      else if (refsLength >= 1) score += 5
-    }
-
-    // Score based on screening results
-    if (application.screeningResults && application.screeningResults.length > 0) {
-      score += 10
-    }
-
-    return NextResponse.json({
-      application,
-      analysis: {
-        score: Math.min(score, 100),
-        incomeToRentRatio: application.monthlyIncome ? (Number(application.monthlyIncome) / monthlyRent).toFixed(2) : null,
-        hasRentalHistory: Boolean(application.currentAddress && application.currentLandlordName),
-        hasReferences: application.references && Array.isArray(application.references) && (application.references as Array<unknown>).length > 0,
-        hasScreeningResults: application.screeningResults && application.screeningResults.length > 0,
-      },
-    })
+    // Return the full application data
+    return NextResponse.json(application)
   } catch (error) {
     console.error('Error fetching application:', error)
     return NextResponse.json(
@@ -206,10 +172,23 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         },
       })
 
+      // Track status history if status changed
+      if (data.status && data.status !== existingApplication.status) {
+        await tx.applicationStatusHistory.create({
+          data: {
+            applicationId: id,
+            fromStatus: existingApplication.status,
+            toStatus: data.status,
+            changedByUserId: user.id,
+            reason: data.statusReason || data.decisionReason || null,
+          },
+        })
+      }
+
       // Handle status-specific side effects
       if (data.status) {
         // If approved and this is the only active application, keep unit as UNDER_APPLICATION
-        // If denied/withdrawn, check if there are other active applications
+        // If denied/withdrawn/rejected, check if there are other active applications
         if (data.status === 'DECLINED' || data.status === 'WITHDRAWN') {
           const otherActiveApplications = await tx.application.count({
             where: {
@@ -340,7 +319,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     }
 
     // Only allow deleting unprocessed applications
-    if (!['SUBMITTED', 'WITHDRAWN'].includes(existingApplication.status)) {
+    if (!['NEW', 'WITHDRAWN'].includes(existingApplication.status)) {
       return NextResponse.json(
         { error: 'Cannot delete application that has been processed. Mark as withdrawn instead.' },
         { status: 400 }

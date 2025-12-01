@@ -61,10 +61,12 @@ interface UnitFormProps {
 
 // Unit status labels for display
 const unitStatusLabels: Record<typeof unitStatuses[number], string> = {
-  vacant: 'Vacant',
-  occupied: 'Occupied',
-  maintenance: 'Under Maintenance',
-  reserved: 'Reserved',
+  VACANT: 'Vacant',
+  OCCUPIED: 'Occupied',
+  NOTICE_GIVEN: 'Notice Given',
+  UNDER_APPLICATION: 'Under Application',
+  MAINTENANCE: 'Under Maintenance',
+  OFF_MARKET: 'Off Market',
 };
 
 // Format currency for display
@@ -132,7 +134,7 @@ export function UnitForm({ mode, propertyId, unit, onSuccess, onCancel }: UnitFo
             marketRent: data.marketRent,
             depositAmount: data.depositAmount || data.marketRent,
             status: data.status,
-            availableDate: data.status === 'vacant' ? new Date() : undefined,
+            availableDate: data.status === 'VACANT' ? new Date() : undefined,
             isListed: data.isListed,
             listingDescription: data.listingDescription,
             listingPhotos: [],
@@ -321,7 +323,7 @@ export function UnitForm({ mode, propertyId, unit, onSuccess, onCancel }: UnitFo
                   </div>
                 </FormControl>
                 <FormDescription>
-                  {field.value > 0 && formatCurrency(field.value)}
+                  {(field.value ?? 0) > 0 && formatCurrency(field.value ?? 0)}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -349,7 +351,7 @@ export function UnitForm({ mode, propertyId, unit, onSuccess, onCancel }: UnitFo
                   </div>
                 </FormControl>
                 <FormDescription>
-                  {field.value > 0 && formatCurrency(field.value)}
+                  {(field.value ?? 0) > 0 && formatCurrency(field.value ?? 0)}
                 </FormDescription>
                 <FormMessage />
               </FormItem>

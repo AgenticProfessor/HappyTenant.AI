@@ -38,6 +38,7 @@ const STATE_LABELS: Record<StewardOrbState, string> = {
   listening: 'Listening...',
   thinking: 'Thinking...',
   speaking: 'Speaking...',
+  proactive: 'Suggestion',
 };
 
 // Loading fallback
@@ -173,7 +174,8 @@ export function StewardAvatar({
           state === 'idle' && 'bg-violet-500',
           state === 'listening' && 'bg-blue-500',
           state === 'thinking' && 'bg-violet-600 animate-pulse',
-          state === 'speaking' && 'bg-fuchsia-500'
+          state === 'speaking' && 'bg-fuchsia-500',
+          state === 'proactive' && 'bg-emerald-500 animate-pulse'
         )}
       />
     </div>

@@ -281,12 +281,7 @@ export function getPaymentMethodLabel(method: PaymentMethod): string {
   return labels[method] || method
 }
 
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount)
-}
+// formatCurrency is exported from use-charges.ts to avoid duplicate exports
 
 export function formatDate(date: string): string {
   return new Intl.DateTimeFormat('en-US', {

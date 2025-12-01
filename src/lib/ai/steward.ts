@@ -16,8 +16,22 @@ import { type AutomationConfig, DEFAULT_AUTOMATION_CONFIG } from './config';
 import { getModule } from './modules';
 import { toolRegistry } from './tools/registry';
 import { navigationTool } from './tools/navigation';
-import { getPropertiesTool, getTenantsTool, getMaintenanceRequestsTool } from './tools/data';
-import { draftMessageTool, createMaintenanceRequestTool } from './tools/actions';
+import {
+  getPropertiesTool,
+  getTenantsTool,
+  getMaintenanceRequestsTool,
+  getApplicationsTool,
+  getPaymentsTool,
+  getConversationsTool,
+} from './tools/data';
+import {
+  draftMessageTool,
+  createMaintenanceRequestTool,
+  reviewApplicationTool,
+  scoreApplicationTool,
+  sendPaymentReminderTool,
+  recordPaymentTool,
+} from './tools/actions';
 
 // Steward personality and system prompt
 const STEWARD_SYSTEM_PROMPT = `You are Steward, an AI assistant for property management. You help landlords manage their rental properties efficiently and professionally.
@@ -103,13 +117,22 @@ export class Steward {
     this.actionLogger = options.actionLogger || getActionLogger();
     this.automationConfig = options.automationConfig || DEFAULT_AUTOMATION_CONFIG;
 
-    // Register tools
+    // Register tools - Data
     toolRegistry.register(navigationTool);
     toolRegistry.register(getPropertiesTool);
     toolRegistry.register(getTenantsTool);
     toolRegistry.register(getMaintenanceRequestsTool);
+    toolRegistry.register(getApplicationsTool);
+    toolRegistry.register(getPaymentsTool);
+    toolRegistry.register(getConversationsTool);
+
+    // Register tools - Actions
     toolRegistry.register(draftMessageTool);
     toolRegistry.register(createMaintenanceRequestTool);
+    toolRegistry.register(reviewApplicationTool);
+    toolRegistry.register(scoreApplicationTool);
+    toolRegistry.register(sendPaymentReminderTool);
+    toolRegistry.register(recordPaymentTool);
   }
 
   /**
@@ -319,9 +342,7 @@ export class Steward {
 
   /**
    * Build system prompt with context
-   */
-  /**
-   * Build system prompt with context
+   * Enhanced to include portfolio-wide data and page-specific context
    */
   private buildSystemPrompt(context?: ChatRequest['context']): string {
     let prompt = STEWARD_SYSTEM_PROMPT;
@@ -339,9 +360,68 @@ export class Steward {
       if (context.contextType && context.contextId) {
         prompt += `\nContext: ${context.contextType} (ID: ${context.contextId})`;
       }
+    }
 
-      if (context.metadata) {
-        prompt += `\n\n## Active Data View\n${JSON.stringify(context.metadata, null, 2)}`;
+    // Add portfolio-wide context for intelligent responses
+    if (context?.metadata) {
+      const meta = context.metadata as Record<string, unknown>;
+
+      // Add portfolio overview if available
+      if (meta.portfolio) {
+        const portfolio = meta.portfolio as Record<string, unknown>;
+        prompt += `\n\n## Portfolio Overview (Live Data)
+You have access to real-time portfolio data:
+- Total Properties: ${portfolio.totalProperties ?? 'N/A'}
+- Total Units: ${portfolio.totalUnits ?? 'N/A'}
+- Occupancy Rate: ${portfolio.occupancyRate ?? 'N/A'}%
+- Collection Rate: ${portfolio.collectionRate ?? 'N/A'}%
+- Net Operating Income: $${portfolio.netOperatingIncome?.toLocaleString() ?? 'N/A'}
+- Pending Maintenance Requests: ${portfolio.pendingMaintenance ?? 0}
+- Overdue Payments: ${portfolio.overduePayments ?? 0}
+- Active Applications: ${portfolio.activeApplications ?? 0}
+- Unread Messages: ${portfolio.unreadMessages ?? 0}
+
+Use this data to provide proactive, personalized assistance. Highlight issues that need attention.`;
+      }
+
+      // Add alerts if available
+      if (meta.alerts && Array.isArray(meta.alerts) && meta.alerts.length > 0) {
+        prompt += `\n\n## Active Alerts`;
+        meta.alerts.slice(0, 5).forEach((alert: any, i: number) => {
+          prompt += `\n${i + 1}. [${alert.type?.toUpperCase()}] ${alert.title}: ${alert.description}`;
+        });
+        prompt += `\n\nMention relevant alerts when they relate to the user's question.`;
+      }
+
+      // Add insights if available
+      if (meta.insights && Array.isArray(meta.insights) && meta.insights.length > 0) {
+        prompt += `\n\n## Current Insights`;
+        meta.insights.slice(0, 3).forEach((insight: any, i: number) => {
+          prompt += `\n${i + 1}. [${insight.type?.toUpperCase()}] ${insight.title}: ${insight.description}`;
+        });
+      }
+
+      // Add page context
+      if (meta.currentPath) {
+        prompt += `\n\n## Current Page\nThe user is viewing: ${meta.currentPath}`;
+
+        if (meta.entityType) {
+          prompt += `\nEntity Type: ${meta.entityType}`;
+        }
+        if (meta.pageSummary) {
+          prompt += `\nPage Summary: ${meta.pageSummary}`;
+        }
+      }
+
+      // Check for greeting context
+      if (meta.isGreeting) {
+        prompt += `\n\n## Instructions
+This is an initial greeting. Be welcoming but concise. Acknowledge:
+1. Where they are in the app
+2. One key insight or alert that needs attention
+3. Offer 2-3 relevant suggestions for how you can help
+
+Keep the greeting brief (2-3 sentences max).`;
       }
     }
 

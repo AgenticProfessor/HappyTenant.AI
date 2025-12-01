@@ -63,9 +63,9 @@ const propertyTypeLabels: Record<typeof propertyTypes[number], string> = {
 
 // Property status labels for display
 const propertyStatusLabels: Record<typeof propertyStatuses[number], string> = {
-  active: 'Active',
-  inactive: 'Inactive',
-  maintenance: 'Under Maintenance',
+  ACTIVE: 'Active',
+  INACTIVE: 'Inactive',
+  SOLD: 'Sold',
 };
 
 export function PropertyEditForm({ property, onSuccess, onCancel }: PropertyEditFormProps) {

@@ -36,7 +36,7 @@ export interface Property {
   purchasePrice?: number;
   currentValue?: number;
   photos: string[];
-  status: 'active' | 'inactive' | 'sold';
+  status: 'ACTIVE' | 'INACTIVE' | 'SOLD';
   createdAt: Date;
   units: Unit[];
 }
@@ -54,7 +54,7 @@ export interface Unit {
   features: string[];
   marketRent: number;
   depositAmount: number;
-  status: 'vacant' | 'occupied' | 'notice_given' | 'maintenance' | 'off_market';
+  status: 'VACANT' | 'OCCUPIED' | 'NOTICE_GIVEN' | 'UNDER_APPLICATION' | 'MAINTENANCE' | 'OFF_MARKET';
   availableDate?: Date;
   isListed: boolean;
   listingDescription?: string;

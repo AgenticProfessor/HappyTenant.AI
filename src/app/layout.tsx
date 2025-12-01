@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { QueryProvider } from "@/providers/query-provider";
 import { AuthProvider } from "@/contexts/auth-context";
-import { ClerkProvider } from "@clerk/nextjs";
 import { StewardProvider } from "@/components/steward/StewardContext";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -19,7 +18,10 @@ export const metadata: Metadata = {
   description: "Simplify how you manage your rentals with AI-powered property management. Screen tenants, collect rent, handle maintenance - all in one place.",
   keywords: ["property management", "landlord software", "rent collection", "tenant screening", "AI property management"],
   manifest: "/manifest.json",
-  themeColor: "#6366f1",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#1f3a5f" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f172a" },
+  ],
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -37,14 +39,10 @@ export default function RootLayout({
       <head>
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
-        <meta name="theme-color" content="#6366f1" />
+        <meta name="theme-color" content="#1f3a5f" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
       </head>
       <body className={`${plusJakarta.variable} font-sans antialiased`}>
-        {/* <ClerkProvider
-          afterSignOutUrl="/"
-          signInFallbackRedirectUrl="/dashboard"
-          signUpFallbackRedirectUrl="/dashboard"
-        > */}
         <QueryProvider>
           <AuthProvider>
             <ThemeProvider
@@ -60,7 +58,6 @@ export default function RootLayout({
             </ThemeProvider>
           </AuthProvider>
         </QueryProvider>
-        {/* </ClerkProvider> */}
       </body>
     </html>
   );

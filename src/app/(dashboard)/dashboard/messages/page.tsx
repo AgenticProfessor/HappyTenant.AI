@@ -1,58 +1,142 @@
 'use client';
 
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+export const dynamic = 'force-dynamic';
+
+import { useState, useCallback } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Plus, Sparkles, Bot } from 'lucide-react';
+import { ConversationList } from '@/components/messages/ConversationList';
+import { MessageThread } from '@/components/messages/MessageThread';
+import { NewConversationDialog } from '@/components/messages/NewConversationDialog';
 import {
-  MessageSquare,
-  Plus,
-  Search,
-  Send,
-  Paperclip,
-  MoreVertical,
-  Phone,
-  Video,
-  Sparkles,
-  Bot,
-  User,
-  Check,
-  CheckCheck,
-} from 'lucide-react';
-import { mockConversations, mockMessages, mockTenants, getTenantById } from '@/data/mock-data';
+  useConversations,
+  useConversationMessages,
+  useSendMessage,
+  useMarkAsRead,
+  useCreateConversation,
+} from '@/hooks/api/use-conversations';
+import { useTenants } from '@/hooks/api/use-tenants';
+import { useAuth } from '@/contexts/auth-context';
+import { toast } from 'sonner';
 
 export default function MessagesPage() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedConversation, setSelectedConversation] = useState(mockConversations[0]?.id || null);
-  const [newMessage, setNewMessage] = useState('');
+  const { user } = useAuth();
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const [isNewConversationOpen, setIsNewConversationOpen] = useState(false);
 
-  const filteredConversations = mockConversations.filter((conv) => {
-    const tenant = getTenantById(conv.participantIds.find((id) => id !== 'user-1') || '');
-    return tenant?.name.toLowerCase().includes(searchQuery.toLowerCase());
-  });
+  // Fetch conversations
+  const {
+    data: conversationsData,
+    isLoading: isLoadingConversations,
+  } = useConversations({ status: 'ACTIVE' });
 
-  const currentConversation = mockConversations.find((c) => c.id === selectedConversation);
-  const conversationMessages = mockMessages.filter(
-    (m) => m.conversationId === selectedConversation
+  // Fetch messages for selected conversation
+  const {
+    data: messagesData,
+    isLoading: isLoadingMessages,
+  } = useConversationMessages(selectedConversationId);
+
+  // Fetch tenants for new conversation dialog
+  const { data: tenantsData } = useTenants();
+
+  // Mutations
+  const sendMessageMutation = useSendMessage();
+  const markAsReadMutation = useMarkAsRead();
+  const createConversationMutation = useCreateConversation();
+
+  // Get current conversation
+  const conversations = conversationsData?.conversations || [];
+  const selectedConversation = conversations.find((c) => c.id === selectedConversationId) || null;
+  const messages = messagesData?.messages || [];
+
+  // Auto-select first conversation if none selected
+  if (!selectedConversationId && conversations.length > 0) {
+    setSelectedConversationId(conversations[0].id);
+  }
+
+  // Handle send message
+  const handleSendMessage = useCallback(
+    (content: string, attachments?: File[]) => {
+      if (!selectedConversationId) return;
+
+      sendMessageMutation.mutate(
+        {
+          conversationId: selectedConversationId,
+          content,
+          contentType: 'TEXT',
+        },
+        {
+          onError: (error) => {
+            toast.error('Failed to send message', {
+              description: error instanceof Error ? error.message : 'Please try again',
+            });
+          },
+        }
+      );
+    },
+    [selectedConversationId, sendMessageMutation]
   );
 
-  const getParticipant = (conversationId: string) => {
-    const conv = mockConversations.find((c) => c.id === conversationId);
-    if (conv) {
-      const participantId = conv.participantIds.find((id) => id !== 'user-1');
-      return participantId ? getTenantById(participantId) : null;
-    }
-    return null;
-  };
+  // Handle mark as read
+  const handleMarkAsRead = useCallback(
+    (messageIds: string[]) => {
+      if (!selectedConversationId || messageIds.length === 0) return;
 
-  const handleSendMessage = () => {
-    if (!newMessage.trim()) return;
-    // In a real app, this would send the message via API
-    setNewMessage('');
-  };
+      markAsReadMutation.mutate({
+        conversationId: selectedConversationId,
+        messageIds,
+      });
+    },
+    [selectedConversationId, markAsReadMutation]
+  );
+
+  // Handle create conversation
+  const handleCreateConversation = useCallback(
+    (data: {
+      participantId: string;
+      participantType: 'tenant' | 'user';
+      message?: string;
+      subject?: string;
+    }) => {
+      createConversationMutation.mutate(
+        {
+          type: data.participantType === 'tenant' ? 'LANDLORD_TENANT' : 'INTERNAL',
+          participantIds: [
+            data.participantType === 'tenant'
+              ? { tenantId: data.participantId }
+              : { userId: data.participantId },
+          ],
+          subject: data.subject,
+          initialMessage: data.message,
+        },
+        {
+          onSuccess: (newConversation) => {
+            setSelectedConversationId(newConversation.id);
+            setIsNewConversationOpen(false);
+            toast.success('Conversation started');
+          },
+          onError: (error) => {
+            toast.error('Failed to create conversation', {
+              description: error instanceof Error ? error.message : 'Please try again',
+            });
+          },
+        }
+      );
+    },
+    [createConversationMutation]
+  );
+
+  // Transform tenants for the dialog
+  const tenantRecipients = (tenantsData?.tenants || []).map((tenant) => ({
+    id: tenant.id,
+    name: `${tenant.firstName} ${tenant.lastName}`,
+    email: tenant.email,
+    phone: tenant.phone || undefined,
+    type: 'tenant' as const,
+    propertyName: tenant.leaseTenants?.[0]?.lease?.unit?.property?.name,
+    unitNumber: tenant.leaseTenants?.[0]?.lease?.unit?.unitNumber,
+  }));
 
   return (
     <div className="space-y-6">
@@ -64,7 +148,7 @@ export default function MessagesPage() {
             Communicate with tenants and manage conversations
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setIsNewConversationOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           New Message
         </Button>
@@ -94,207 +178,40 @@ export default function MessagesPage() {
       {/* Messages interface */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-350px)] min-h-[500px]">
         {/* Conversations list */}
-        <Card className="lg:col-span-1 flex flex-col">
-          <CardHeader className="pb-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search conversations..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </CardHeader>
-          <CardContent className="flex-1 p-0">
-            <ScrollArea className="h-full">
-              <div className="space-y-1 p-3">
-                {filteredConversations.map((conversation) => {
-                  const participant = getParticipant(conversation.id);
-                  const isSelected = selectedConversation === conversation.id;
-                  const lastMessage = mockMessages
-                    .filter((m) => m.conversationId === conversation.id)
-                    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
-
-                  return (
-                    <button
-                      key={conversation.id}
-                      onClick={() => setSelectedConversation(conversation.id)}
-                      className={`w-full flex items-start gap-3 p-3 rounded-lg text-left transition-colors ${
-                        isSelected ? 'bg-primary/10' : 'hover:bg-muted'
-                      }`}
-                    >
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={participant?.avatarUrl} alt={participant?.name} />
-                        <AvatarFallback>
-                          {participant?.name.split(' ').map((n) => n[0]).join('') || '?'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <p className={`font-medium truncate ${isSelected ? 'text-primary' : ''}`}>
-                            {participant?.name || 'Unknown'}
-                          </p>
-                          <span className="text-xs text-muted-foreground">
-                            {lastMessage
-                              ? new Date(lastMessage.timestamp).toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric',
-                                })
-                              : ''}
-                          </span>
-                        </div>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {lastMessage?.content || 'No messages yet'}
-                        </p>
-                      </div>
-                      {conversation.unreadCount > 0 && (
-                        <Badge className="h-5 w-5 p-0 flex items-center justify-center rounded-full">
-                          {conversation.unreadCount}
-                        </Badge>
-                      )}
-                    </button>
-                  );
-                })}
-
-                {filteredConversations.length === 0 && (
-                  <div className="p-8 text-center text-muted-foreground">
-                    <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No conversations found</p>
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+        <div className="lg:col-span-1">
+          <ConversationList
+            conversations={conversations}
+            selectedId={selectedConversationId}
+            currentUserId={user?.id || ''}
+            isLoading={isLoadingConversations}
+            onSelect={setSelectedConversationId}
+            onNewConversation={() => setIsNewConversationOpen(true)}
+          />
+        </div>
 
         {/* Chat area */}
-        <Card className="lg:col-span-2 flex flex-col">
-          {currentConversation ? (
-            <>
-              {/* Chat header */}
-              <CardHeader className="border-b py-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarImage
-                        src={getParticipant(currentConversation.id)?.avatarUrl}
-                        alt={getParticipant(currentConversation.id)?.name}
-                      />
-                      <AvatarFallback>
-                        {getParticipant(currentConversation.id)?.name.split(' ').map((n) => n[0]).join('') || '?'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h3 className="font-semibold">
-                        {getParticipant(currentConversation.id)?.name || 'Unknown'}
-                      </h3>
-                      <p className="text-xs text-muted-foreground">
-                        {getParticipant(currentConversation.id)?.email}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon">
-                      <Phone className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon">
-                      <Video className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-
-              {/* Messages */}
-              <CardContent className="flex-1 p-0 overflow-hidden">
-                <ScrollArea className="h-full p-4">
-                  <div className="space-y-4">
-                    {conversationMessages.map((message) => {
-                      const isOwn = message.senderId === 'user-1';
-                      return (
-                        <div
-                          key={message.id}
-                          className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
-                        >
-                          <div
-                            className={`max-w-[70%] rounded-lg p-3 ${
-                              isOwn
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-muted'
-                            }`}
-                          >
-                            <p className="text-sm">{message.content}</p>
-                            <div className={`flex items-center gap-1 mt-1 text-xs ${
-                              isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground'
-                            }`}>
-                              <span>
-                                {new Date(message.timestamp).toLocaleTimeString('en-US', {
-                                  hour: 'numeric',
-                                  minute: '2-digit',
-                                })}
-                              </span>
-                              {isOwn && (
-                                message.read ? (
-                                  <CheckCheck className="h-3 w-3" />
-                                ) : (
-                                  <Check className="h-3 w-3" />
-                                )
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-
-              {/* Message input */}
-              <div className="p-4 border-t">
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon">
-                    <Paperclip className="h-4 w-4" />
-                  </Button>
-                  <Input
-                    placeholder="Type a message..."
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendMessage();
-                      }
-                    }}
-                    className="flex-1"
-                  />
-                  <Button variant="ghost" size="icon" className="text-primary">
-                    <Sparkles className="h-4 w-4" />
-                  </Button>
-                  <Button size="icon" onClick={handleSendMessage}>
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground mt-2 text-center">
-                  Press Enter to send • Shift+Enter for new line
-                </p>
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground/50" />
-                <h3 className="mt-4 font-semibold">No conversation selected</h3>
-                <p className="text-muted-foreground mt-1">
-                  Choose a conversation to start messaging
-                </p>
-              </div>
-            </div>
-          )}
-        </Card>
+        <div className="lg:col-span-2">
+          <MessageThread
+            conversation={selectedConversation}
+            messages={messages}
+            currentUserId={user?.id || ''}
+            isLoading={isLoadingMessages}
+            isSending={sendMessageMutation.isPending}
+            onSendMessage={handleSendMessage}
+            onMarkAsRead={handleMarkAsRead}
+            hasMoreMessages={messagesData?.hasMore || false}
+          />
+        </div>
       </div>
+
+      {/* New conversation dialog */}
+      <NewConversationDialog
+        open={isNewConversationOpen}
+        onOpenChange={setIsNewConversationOpen}
+        tenants={tenantRecipients}
+        onCreateConversation={handleCreateConversation}
+        isLoading={createConversationMutation.isPending}
+      />
     </div>
   );
 }

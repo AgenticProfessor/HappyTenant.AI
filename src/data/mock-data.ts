@@ -900,5 +900,110 @@ export const getVendorById = (id: string) => {
 
 // Helper function to get vendors by category
 export const getVendorsByCategory = (category: string) => {
-  return mockVendors.filter((v) => v.categories.includes(category as typeof v.categories[number]));
+  return mockVendors.filter((v) => (v.categories as readonly string[]).includes(category));
 };
+
+// Mock Applications
+export const mockApplications = [
+  {
+    id: 'app-1',
+    organizationId: 'org-1',
+    propertyId: 'prop-1',
+    unitId: 'unit-1',
+    firstName: 'Alex',
+    lastName: 'Thompson',
+    email: 'alex.thompson@email.com',
+    phone: '(512) 555-4567',
+    status: 'NEW',
+    createdAt: '2024-11-25',
+    monthlyIncome: 7500,
+    employmentStatus: 'employed',
+    employerName: 'Tech Solutions Inc',
+    desiredMoveInDate: '2024-12-15',
+  },
+  {
+    id: 'app-2',
+    organizationId: 'org-1',
+    propertyId: 'prop-2',
+    unitId: 'unit-3',
+    firstName: 'Jessica',
+    lastName: 'Martinez',
+    email: 'jessica.m@email.com',
+    phone: '(512) 555-5678',
+    status: 'UNDER_REVIEW',
+    createdAt: '2024-11-20',
+    monthlyIncome: 5800,
+    employmentStatus: 'employed',
+    employerName: 'Austin Medical Center',
+    desiredMoveInDate: '2025-01-01',
+  },
+  {
+    id: 'app-3',
+    organizationId: 'org-1',
+    propertyId: 'prop-1',
+    unitId: 'unit-2',
+    firstName: 'David',
+    lastName: 'Chen',
+    email: 'david.chen@email.com',
+    phone: '(512) 555-6789',
+    status: 'APPROVED',
+    createdAt: '2024-11-15',
+    monthlyIncome: 9000,
+    employmentStatus: 'self_employed',
+    employerName: 'Self - Consulting',
+    desiredMoveInDate: '2024-12-01',
+  },
+];
+
+// Mock Payments
+export const mockPayments = [
+  {
+    id: 'pay-1',
+    organizationId: 'org-1',
+    tenantId: 'tenant-1',
+    propertyId: 'prop-1',
+    unitId: 'unit-1',
+    amount: 185000, // in cents
+    type: 'rent',
+    status: 'COMPLETED',
+    dueDate: '2024-11-01',
+    paidAt: '2024-11-01',
+    method: 'ach',
+  },
+  {
+    id: 'pay-2',
+    organizationId: 'org-1',
+    tenantId: 'tenant-2',
+    propertyId: 'prop-2',
+    unitId: 'unit-3',
+    amount: 145000, // in cents
+    type: 'rent',
+    status: 'COMPLETED',
+    dueDate: '2024-11-01',
+    paidAt: '2024-11-02',
+    method: 'card',
+  },
+  {
+    id: 'pay-3',
+    organizationId: 'org-1',
+    tenantId: 'tenant-3',
+    propertyId: 'prop-3',
+    unitId: 'unit-5',
+    amount: 165000, // in cents
+    type: 'rent',
+    status: 'PENDING',
+    dueDate: '2024-12-01',
+  },
+  {
+    id: 'pay-4',
+    organizationId: 'org-1',
+    tenantId: 'tenant-1',
+    propertyId: 'prop-1',
+    unitId: 'unit-1',
+    amount: 5000, // in cents
+    type: 'fee',
+    status: 'OVERDUE',
+    dueDate: '2024-10-15',
+    description: 'Late fee',
+  },
+];

@@ -13,4 +13,17 @@ export {
   StewardProvider,
   useSteward,
   type StewardMessage,
+  type StewardContextData,
+  type RootDataContext,
 } from './StewardContext';
+
+// Root-level data provider for portfolio-wide awareness
+export {
+  StewardDataProvider,
+  useStewardData,
+  useStewardRichContext,
+  type PortfolioMetrics,
+  type PortfolioAlert,
+  type ProactiveInsight,
+  type PageContextEnrichment,
+} from './StewardDataProvider';

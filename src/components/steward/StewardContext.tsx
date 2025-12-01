@@ -3,6 +3,8 @@
 /**
  * StewardContext - State management for Steward AI
  * Provides global access to Steward state and actions
+ *
+ * Enhanced with root-level data awareness for intelligent context
  */
 
 import {
@@ -13,8 +15,9 @@ import {
   useEffect,
   type ReactNode,
 } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import type { StewardOrbState } from './StewardOrb';
+import { useStewardData, useStewardRichContext } from './StewardDataProvider';
 
 // Message types
 export interface StewardMessage {
@@ -22,16 +25,53 @@ export interface StewardMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  metadata?: {
+    contextSnapshot?: unknown;
+    toolsUsed?: string[];
+  };
 }
 
-// Context data shape
+// Context data shape - Enhanced with richer data
 export interface StewardContextData {
-  type: 'page' | 'selection' | 'object';
+  type: 'page' | 'selection' | 'object' | 'list' | 'detail';
   name: string;
   data?: Record<string, unknown>;
   description?: string;
   id?: string;
   url?: string;
+  // New fields for richer context
+  entityType?: string; // e.g., 'property', 'tenant', 'payment'
+  entityId?: string;
+  listFilters?: Record<string, string>;
+  summary?: string;
+  relatedEntities?: Array<{ type: string; id: string; name: string }>;
+}
+
+// Root data context - portfolio-wide data
+export interface RootDataContext {
+  portfolio?: {
+    totalProperties: number;
+    totalUnits: number;
+    occupancyRate: number;
+    collectionRate: number;
+    pendingMaintenance: number;
+    overduePayments: number;
+    activeApplications: number;
+    unreadMessages: number;
+    netOperatingIncome: number;
+  };
+  alerts?: Array<{
+    type: string;
+    title: string;
+    description: string;
+    priority: number;
+  }>;
+  insights?: Array<{
+    type: string;
+    title: string;
+    description: string;
+    impact: string;
+  }>;
 }
 
 // Context shape
@@ -45,6 +85,7 @@ interface StewardContextValue {
   isLoading: boolean;
   error: string | null;
   activeContext: StewardContextData | null;
+  rootData: RootDataContext | null;
   suggestions: string[];
   actions: any[];
 
@@ -61,6 +102,14 @@ interface StewardContextValue {
   clearError: () => void;
   registerContext: (context: StewardContextData) => void;
   unregisterContext: () => void;
+  setRootData: (data: RootDataContext) => void;
+
+  // New: Get full context for AI
+  getFullContext: () => {
+    page: StewardContextData | null;
+    root: RootDataContext | null;
+    path: string;
+  };
 }
 
 const StewardContext = createContext<StewardContextValue | null>(null);
@@ -79,9 +128,53 @@ export function StewardProvider({ children, defaultOpen = false }: StewardProvid
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeContext, setActiveContext] = useState<StewardContextData | null>(null);
+  const [rootData, setRootData] = useState<RootDataContext | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [actions, setActions] = useState<any[]>([]);
   const router = useRouter();
+  const pathname = usePathname();
+
+  // Connect to root-level data provider
+  const { metrics, alerts, insights, currentPageContext } = useStewardData();
+  const { suggestedQuestions } = useStewardRichContext();
+
+  // Sync root data from StewardDataProvider
+  useEffect(() => {
+    if (metrics) {
+      setRootData({
+        portfolio: {
+          totalProperties: metrics.totalProperties,
+          totalUnits: metrics.totalUnits,
+          occupancyRate: metrics.occupancyRate,
+          collectionRate: metrics.collectionRate,
+          pendingMaintenance: metrics.pendingMaintenance,
+          overduePayments: metrics.overduePayments,
+          activeApplications: metrics.activeApplications,
+          unreadMessages: metrics.unreadMessages,
+          netOperatingIncome: metrics.netOperatingIncome,
+        },
+        alerts: alerts.map(alert => ({
+          type: alert.type,
+          title: alert.title,
+          description: alert.description,
+          priority: alert.priority,
+        })),
+        insights: insights.map(insight => ({
+          type: insight.type,
+          title: insight.title,
+          description: insight.description,
+          impact: insight.impact,
+        })),
+      });
+    }
+  }, [metrics, alerts, insights]);
+
+  // Update suggestions based on current page context
+  useEffect(() => {
+    if (suggestedQuestions.length > 0 && messages.length === 0) {
+      setSuggestions(suggestedQuestions.slice(0, 4));
+    }
+  }, [suggestedQuestions, messages.length]);
 
   // Open the widget
   const open = useCallback(() => {
@@ -117,9 +210,21 @@ export function StewardProvider({ children, defaultOpen = false }: StewardProvid
     setIsMinimized(false);
   }, []);
 
+  // Get full context for AI
+  const getFullContext = useCallback(() => {
+    return {
+      page: activeContext,
+      root: rootData,
+      path: pathname,
+    };
+  }, [activeContext, rootData, pathname]);
+
   // Send a message to Steward
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim()) return;
+
+    // Capture current context snapshot
+    const contextSnapshot = getFullContext();
 
     // Add user message
     const userMessage: StewardMessage = {
@@ -127,6 +232,7 @@ export function StewardProvider({ children, defaultOpen = false }: StewardProvid
       role: 'user',
       content,
       timestamp: new Date(),
+      metadata: { contextSnapshot },
     };
 
     setMessages((prev) => [...prev, userMessage]);
@@ -135,19 +241,32 @@ export function StewardProvider({ children, defaultOpen = false }: StewardProvid
     setState('thinking');
 
     try {
-      // Call the Steward API
+      // Build rich context for the AI
+      const richContext = {
+        // Page-level context
+        module: activeContext?.name,
+        contextType: activeContext?.type,
+        contextId: activeContext?.entityId || activeContext?.id || activeContext?.name,
+        entityType: activeContext?.entityType,
+        pageData: activeContext?.data,
+        pageSummary: activeContext?.summary,
+        // Portfolio-wide context
+        portfolio: rootData?.portfolio,
+        alerts: rootData?.alerts?.slice(0, 3), // Top 3 alerts
+        insights: rootData?.insights?.slice(0, 3), // Top 3 insights
+        // Navigation context
+        currentPath: pathname,
+        relatedEntities: activeContext?.relatedEntities,
+      };
+
+      // Call the Steward API with rich context
       const response = await fetch('/api/steward/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: content,
           conversationId: messages.length > 0 ? messages[0].id : undefined,
-          context: activeContext ? {
-            module: activeContext.name, // Map context name to module if applicable
-            contextType: activeContext.type,
-            contextId: activeContext.name,
-            metadata: activeContext.data,
-          } : undefined,
+          context: richContext,
         }),
       });
 
@@ -199,7 +318,7 @@ export function StewardProvider({ children, defaultOpen = false }: StewardProvid
     } finally {
       setIsLoading(false);
     }
-  }, [messages, activeContext]);
+  }, [messages, activeContext, rootData, pathname, getFullContext]);
 
   // Register context
   const registerContext = useCallback((context: StewardContextData) => {
@@ -223,24 +342,34 @@ export function StewardProvider({ children, defaultOpen = false }: StewardProvid
     setError(null);
   }, []);
 
-  // Welcome message on first open
+  // Welcome message on first open - with rich context awareness
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       const fetchGreeting = async () => {
         setIsLoading(true);
         try {
+          // Build rich context for greeting
+          const richContext = {
+            module: activeContext?.name,
+            contextType: activeContext?.type,
+            contextId: activeContext?.entityId || activeContext?.id || activeContext?.name,
+            entityType: activeContext?.entityType,
+            pageData: activeContext?.data,
+            pageSummary: activeContext?.summary,
+            portfolio: rootData?.portfolio,
+            alerts: rootData?.alerts?.slice(0, 3),
+            insights: rootData?.insights?.slice(0, 2),
+            currentPath: pathname,
+          };
+
           const response = await fetch('/api/steward/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              message: "Generate a brief, friendly greeting based on the current context. Mention what you see on the screen.",
+              message: "Generate a brief, contextual greeting. Acknowledge where the user is in the app and highlight 1-2 relevant insights or alerts if any exist. Be helpful and proactive.",
               conversationId: undefined,
-              context: activeContext ? {
-                module: activeContext.name,
-                contextType: activeContext.type,
-                contextId: activeContext.name,
-                metadata: activeContext.data,
-              } : undefined,
+              context: richContext,
+              isGreeting: true,
             }),
           });
 
@@ -260,10 +389,26 @@ export function StewardProvider({ children, defaultOpen = false }: StewardProvid
           setMessages([welcomeMessage]);
         } catch (err) {
           console.error('Greeting error:', err);
+          // Generate a smart fallback based on available context
+          let fallbackContent = "Hi! I'm Steward, your AI property management partner.";
+
+          if (rootData?.portfolio) {
+            const p = rootData.portfolio;
+            if (p.overduePayments > 0) {
+              fallbackContent += ` I notice you have ${p.overduePayments} overdue payment(s) to follow up on.`;
+            } else if (p.pendingMaintenance > 0) {
+              fallbackContent += ` There are ${p.pendingMaintenance} maintenance requests awaiting attention.`;
+            } else {
+              fallbackContent += ` Your portfolio looks healthy with ${p.occupancyRate}% occupancy!`;
+            }
+          }
+
+          fallbackContent += " How can I help you today?";
+
           const fallbackMessage: StewardMessage = {
             id: 'welcome',
             role: 'assistant',
-            content: "Hi! I'm Steward, your AI property management partner. How can I help you today?",
+            content: fallbackContent,
             timestamp: new Date(),
           };
           setMessages([fallbackMessage]);
@@ -274,7 +419,7 @@ export function StewardProvider({ children, defaultOpen = false }: StewardProvid
 
       fetchGreeting();
     }
-  }, [isOpen, messages.length, activeContext]);
+  }, [isOpen, messages.length, activeContext, rootData, pathname]);
 
   const value: StewardContextValue = {
     isOpen,
@@ -295,10 +440,13 @@ export function StewardProvider({ children, defaultOpen = false }: StewardProvid
     clearMessages,
     clearError,
     activeContext,
+    rootData,
     suggestions,
     actions,
     registerContext,
     unregisterContext,
+    setRootData,
+    getFullContext,
   };
 
   return (

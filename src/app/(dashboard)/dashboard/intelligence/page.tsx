@@ -141,10 +141,10 @@ export default function IntelligencePage() {
             <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+                        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
                             Intelligence Hub
                         </h1>
-                        <p className="text-slate-500 mt-1">
+                        <p className="text-muted-foreground mt-1">
                             Real-time monitoring of regulatory risks and market dynamics affecting your portfolio.
                         </p>
                     </div>
@@ -155,7 +155,7 @@ export default function IntelligencePage() {
                                 Agent Refreshing...
                             </span>
                         )}
-                        <span className="text-xs text-slate-400 flex items-center gap-1">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <span className="relative flex h-2 w-2">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -181,7 +181,7 @@ export default function IntelligencePage() {
                             <Activity className="h-24 w-24" />
                         </div>
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-slate-400 flex items-center gap-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                                 FED FUNDS RATE
                                 <ExternalLink className="h-3 w-3" />
                             </CardTitle>
@@ -192,7 +192,7 @@ export default function IntelligencePage() {
                                 <TrendingDown className="h-4 w-4 mr-1" />
                                 -25 bps (Last Meeting)
                             </div>
-                            <div className="mt-4 text-xs text-slate-500">
+                            <div className="mt-4 text-xs text-muted-foreground">
                                 Next Meeting: Dec 18, 2025
                             </div>
                         </CardContent>
@@ -204,11 +204,11 @@ export default function IntelligencePage() {
                     <Card className="bg-white border-slate-200 relative overflow-hidden h-full shadow-sm hover:shadow-md transition-shadow">
                         <CardHeader className="pb-2 flex flex-row items-start justify-between">
                             <div>
-                                <CardTitle className="text-sm font-medium text-slate-500 flex items-center gap-2 uppercase tracking-wider">
+                                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2 uppercase tracking-wider">
                                     Polymarket Forecast
                                     <ExternalLink className="h-3 w-3" />
                                 </CardTitle>
-                                <CardDescription className="text-slate-900 font-semibold mt-1 text-lg">
+                                <CardDescription className="text-foreground font-semibold mt-1 text-lg">
                                     {marketData?.marketQuestion || 'Loading market data...'}
                                 </CardDescription>
                             </div>
@@ -229,7 +229,7 @@ export default function IntelligencePage() {
                                     />
                                 </div>
                             ) : (
-                                <div className="h-[200px] flex items-center justify-center text-slate-400">
+                                <div className="h-[200px] flex items-center justify-center text-muted-foreground">
                                     {loadingMarket ? 'Loading market embed...' : 'Market data unavailable'}
                                 </div>
                             )}
@@ -277,7 +277,7 @@ export default function IntelligencePage() {
                                         AI-curated updates for your property jurisdictions.
                                     </CardDescription>
                                 </div>
-                                <Badge variant="outline" className="bg-white text-slate-500">
+                                <Badge variant="outline" className="bg-white text-muted-foreground">
                                     <RefreshCw className={`h-3 w-3 mr-1 ${loadingLegislative ? 'animate-spin' : ''}`} />
                                     {loadingLegislative ? 'Updating...' : 'Auto-Updating'}
                                 </Badge>
@@ -303,12 +303,12 @@ export default function IntelligencePage() {
                                                             <Badge variant="secondary" className="text-[10px] font-medium px-1.5 py-0 h-5">
                                                                 {update.location}
                                                             </Badge>
-                                                            <span className="text-xs text-slate-400 flex items-center gap-1">
+                                                            <span className="text-xs text-muted-foreground flex items-center gap-1">
                                                                 <Clock className="h-3 w-3" />
                                                                 {update.timestamp}
                                                             </span>
                                                         </div>
-                                                        <h3 className="text-sm font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                                                        <h3 className="text-sm font-semibold text-foreground group-hover:text-indigo-600 transition-colors">
                                                             {update.title}
                                                         </h3>
                                                         <p className="text-xs text-slate-600 mt-1 leading-relaxed">
@@ -319,7 +319,7 @@ export default function IntelligencePage() {
                                             </div>
                                         ))
                                     ) : (
-                                        <div className="p-8 text-center text-slate-500">
+                                        <div className="p-8 text-center text-muted-foreground">
                                             {loadingLegislative ? 'Scanning legislative databases...' : 'No recent updates found.'}
                                         </div>
                                     )}

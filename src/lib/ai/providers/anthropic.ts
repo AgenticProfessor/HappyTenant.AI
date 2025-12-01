@@ -341,37 +341,39 @@ export class AnthropicProvider implements AIProvider {
     for (const msg of messages) {
       if (msg.role === 'system') {
         // Anthropic handles system messages differently - combine them
+        const content = msg.content ?? '';
         extractedSystemPrompt = extractedSystemPrompt
-          ? `${extractedSystemPrompt}\n\n${msg.content}`
-          : msg.content;
+          ? `${extractedSystemPrompt}\n\n${content}`
+          : content || undefined;
         continue;
       }
 
       // Anthropic requires alternating user/assistant messages
       const lastMsg = formatted[formatted.length - 1];
+      const msgContent = msg.content ?? '';
 
       if (msg.role === 'user') {
         if (lastMsg?.role === 'user') {
           // Combine consecutive user messages
           if (typeof lastMsg.content === 'string') {
-            lastMsg.content = `${lastMsg.content}\n\n${msg.content}`;
+            lastMsg.content = `${lastMsg.content}\n\n${msgContent}`;
           }
         } else {
           formatted.push({
             role: 'user',
-            content: msg.content,
+            content: msgContent,
           });
         }
       } else if (msg.role === 'assistant') {
         if (lastMsg?.role === 'assistant') {
           // Combine consecutive assistant messages
           if (typeof lastMsg.content === 'string') {
-            lastMsg.content = `${lastMsg.content}\n\n${msg.content}`;
+            lastMsg.content = `${lastMsg.content}\n\n${msgContent}`;
           }
         } else {
           formatted.push({
             role: 'assistant',
-            content: msg.content,
+            content: msgContent,
           });
         }
       }

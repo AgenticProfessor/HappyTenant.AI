@@ -81,15 +81,28 @@ model Organization {
 }
 
 // Business entities for landlords with multiple LLCs/properties
+// Supports Series LLC parent/child hierarchies for File Hub organization
 model BusinessEntity {
   id               String   @id @default(cuid())
   organizationId   String
   organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   // Entity Info
-  name             String
+  name             String       // Display name: "ABC Properties LLC"
+  legalName        String?      // Full legal name if different from display name
   entityType       BusinessEntityType
   isDefault        Boolean  @default(false)
+
+  // Series LLC Support (for hierarchical entity structures)
+  parentEntityId   String?
+  parentEntity     BusinessEntity?  @relation("EntityChildren", fields: [parentEntityId], references: [id])
+  childEntities    BusinessEntity[] @relation("EntityChildren")
+
+  // Registration Info
+  stateOfFormation String?      // State where entity was formed: "DE", "TX", etc.
+  dateFormed       DateTime?    // Date of formation
+  registeredAgent  String?      // Registered agent name
+  registeredAgentAddress String? // Registered agent address
 
   // Tax Information (encrypted in production)
   ein              String?  // For business entities (XX-XXXXXXX format)
@@ -111,15 +124,32 @@ model BusinessEntity {
   achPayoutSpeed   ACHPayoutSpeed @default(STANDARD)
   payoutDelayDays  Int      @default(7)
 
+  // Status & Compliance
+  status           EntityStatus @default(ACTIVE)
+  annualReportDue  DateTime?    // Next annual report due date
+  goodStandingDate DateTime?    // Last good standing certificate date
+
   // Timestamps
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
   // Relations
   bankAccounts     EntityBankAccount[]
+  properties       Property[]
+  documents        Document[]
 
   @@index([organizationId])
   @@index([isDefault])
+  @@index([parentEntityId])
+  @@index([status])
+}
+
+enum EntityStatus {
+  ACTIVE
+  INACTIVE
+  DISSOLVED
+  PENDING_FORMATION
+  SUSPENDED
 }
 
 // Bank accounts linked to business entities for payouts
@@ -167,10 +197,14 @@ enum SubscriptionTier {
 enum BusinessEntityType {
   INDIVIDUAL
   LLC
+  SERIES_LLC        // Parent Series LLC
+  SERIES_LLC_CHILD  // Individual series under a Series LLC
   LP
+  LLP
   S_CORP
   C_CORP
   TRUST
+  ESTATE
   OTHER
 }
 
@@ -263,6 +297,10 @@ model Property {
   organizationId   String
   organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  // Business Entity (for File Hub hierarchy: Entity → Property → Lease)
+  businessEntityId String?
+  businessEntity   BusinessEntity? @relation(fields: [businessEntityId], references: [id])
+
   // Basic Info
   name             String
   type             PropertyType
@@ -304,6 +342,7 @@ model Property {
   documents        Document[]
 
   @@index([organizationId])
+  @@index([businessEntityId])
   @@index([status])
 }
 
@@ -378,6 +417,7 @@ model Unit {
   leases              Lease[]
   maintenanceRequests MaintenanceRequest[]
   applications        Application[]
+  applicationLinks    ApplicationLink[]
   documents           Document[]
 
   @@unique([propertyId, unitNumber])
@@ -553,10 +593,48 @@ enum RiskLevel {
 // APPLICATIONS & LISTINGS
 // ============================================================
 
+// Shareable application links for landlords to send to prospects
+model ApplicationLink {
+  id               String   @id @default(cuid())
+  organizationId   String
+  unitId           String?           // Null = organization-wide link
+  unit             Unit?             @relation(fields: [unitId], references: [id])
+
+  // Link settings
+  token            String   @unique  // URL-safe token for public link
+  name             String?           // e.g., "Summer 2024 Applications"
+  isActive         Boolean  @default(true)
+
+  // Application fee (Stripe payment)
+  applicationFee   Decimal? @db.Decimal(10, 2)
+  collectFeeOnline Boolean  @default(false)
+
+  // Expiration
+  expiresAt        DateTime?
+  maxApplications  Int?
+  applicationsReceived Int  @default(0)
+
+  // Customization
+  requiredDocuments String[]         // ['id', 'pay_stubs', 'bank_statements']
+  customQuestions   Json?            // Array of custom questions
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  applications     Application[]
+
+  @@index([organizationId])
+  @@index([token])
+}
+
 model Application {
   id               String   @id @default(cuid())
   unitId           String
   unit             Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  // Link to application link (if submitted via public link)
+  applicationLinkId String?
+  applicationLink   ApplicationLink? @relation(fields: [applicationLinkId], references: [id])
 
   // Applicant (may or may not become a Tenant)
   tenantId         String?  // Linked after approval
@@ -567,47 +645,90 @@ model Application {
   lastName         String
   email            String
   phone            String?
+  dateOfBirth      DateTime?
+
+  // SSN (encrypted at rest)
+  ssnEncrypted     String?  // AES-256-GCM encrypted SSN
+
+  // Identification
+  driversLicense   String?
+  driversLicenseState String?
 
   // Application Details
   desiredMoveInDate DateTime?
   desiredLeaseTermMonths Int?
 
   // Employment at time of application
+  employmentStatus String?  // EMPLOYED_FULL_TIME, SELF_EMPLOYED, etc.
   employerName     String?
+  employerPhone    String?
+  employerAddress  String?
   jobTitle         String?
   monthlyIncome    Decimal? @db.Decimal(10, 2)
+  additionalIncome Decimal? @db.Decimal(10, 2)
+  additionalIncomeSource String?
 
   // References
-  references       Json?    // Array of { name, phone, relationship }
+  references       Json?    // Array of { name, phone, email, relationship }
 
-  // Pets & Vehicles
+  // Pets & Vehicles (detailed JSON)
   hasPets          Boolean  @default(false)
   petDetails       String?
+  petsJson         Json?    // Array of { type, breed, weight, age, name }
   hasVehicles      Boolean  @default(false)
   vehicleDetails   String?
+  vehiclesJson     Json?    // Array of { make, model, year, color, licensePlate }
 
-  // Rental History
+  // Additional Occupants
+  additionalOccupantsJson Json?  // Array of { name, relationship, age, occupation }
+
+  // Emergency Contact
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  emergencyContactRelation String?
+
+  // Rental History (detailed JSON)
   currentAddress   String?
+  currentCity      String?
+  currentState     String?
+  currentZip       String?
   currentLandlordName String?
   currentLandlordPhone String?
   currentRent      Decimal? @db.Decimal(10, 2)
+  currentMoveInDate DateTime?
   reasonForMoving  String?
+  rentalHistoryJson Json?    // Array of previous addresses with landlord info
 
   // Co-applicants
   coApplicants     Json?    // Array of applicant info objects
 
+  // Screening Consent
+  consentToBackgroundCheck Boolean @default(false)
+  consentToCreditCheck     Boolean @default(false)
+  consentSignedAt          DateTime?
+
+  // Email Verification
+  emailVerified    Boolean  @default(false)
+  emailVerifiedAt  DateTime?
+
   // Status & Pipeline
   status           ApplicationStatus @default(NEW)
 
-  // Fees
+  // Fees (Stripe payment)
   applicationFee   Decimal? @db.Decimal(10, 2)
   applicationFeePaid Boolean @default(false)
+  stripePaymentIntentId String?
+  stripePaymentStatus   String?
 
   // Notes & Decision
   notes            String?  @db.Text
   decisionReason   String?
   decidedByUserId  String?
   decidedAt        DateTime?
+
+  // How did they hear about us
+  howDidYouHear    String?
+  additionalComments String? @db.Text
 
   // Timestamps
   submittedAt      DateTime @default(now())
@@ -616,10 +737,65 @@ model Application {
   // Relations
   screeningResults ScreeningResult[]
   documents        Document[]
+  verifications    ApplicationVerification[]
+  applicationNotes ApplicationNote[]
+  statusHistory    ApplicationStatusHistory[]
 
   @@index([unitId])
   @@index([status])
   @@index([email])
+  @@index([applicationLinkId])
+}
+
+// Email verification for public applications
+model ApplicationVerification {
+  id               String   @id @default(cuid())
+  applicationId    String
+  application      Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  email            String
+  code             String            // 6-digit verification code
+  verified         Boolean  @default(false)
+  verifiedAt       DateTime?
+  expiresAt        DateTime
+  attempts         Int      @default(0)
+
+  createdAt        DateTime @default(now())
+
+  @@index([applicationId])
+  @@index([email, code])
+}
+
+// Internal notes on applications
+model ApplicationNote {
+  id               String   @id @default(cuid())
+  applicationId    String
+  application      Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  userId           String
+  content          String   @db.Text
+  isInternal       Boolean  @default(true)  // Internal = not visible to applicant
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([applicationId])
+}
+
+// Status change history for applications
+model ApplicationStatusHistory {
+  id               String   @id @default(cuid())
+  applicationId    String
+  application      Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  fromStatus       ApplicationStatus?
+  toStatus         ApplicationStatus
+  changedByUserId  String?
+  reason           String?
+
+  createdAt        DateTime @default(now())
+
+  @@index([applicationId])
 }
 
 enum ApplicationStatus {
@@ -1396,6 +1572,8 @@ model Document {
   category         String?  // User-defined category
 
   // Linked Entities (polymorphic - can be linked to multiple)
+  businessEntityId String?
+  businessEntity   BusinessEntity? @relation(fields: [businessEntityId], references: [id])
   propertyId       String?
   property         Property? @relation(fields: [propertyId], references: [id])
   unitId           String?
@@ -1433,6 +1611,7 @@ model Document {
 
   @@index([organizationId])
   @@index([type])
+  @@index([businessEntityId])
   @@index([propertyId])
   @@index([unitId])
   @@index([tenantId])
@@ -1447,18 +1626,64 @@ enum StorageProvider {
 }
 
 enum DocumentType {
+  // Lease Documents
   LEASE_AGREEMENT
   LEASE_ADDENDUM
+  LEASE_RENEWAL
+
+  // Tenant Documents
   RENTAL_APPLICATION
   ID_DOCUMENT
   INCOME_VERIFICATION
   SCREENING_REPORT
+
+  // Inspection Documents
   MOVE_IN_INSPECTION
   MOVE_OUT_INSPECTION
+
+  // Financial Documents
   PAYMENT_RECEIPT
-  INSURANCE_CERTIFICATE
-  NOTICE
   INVOICE
+
+  // Insurance Documents
+  INSURANCE_CERTIFICATE
+  INSURANCE_POLICY
+
+  // Notices
+  NOTICE
+  RENT_INCREASE_NOTICE
+  LEASE_VIOLATION_NOTICE
+  EVICTION_NOTICE
+
+  // Entity/Corporate Documents
+  OPERATING_AGREEMENT
+  ARTICLES_OF_ORGANIZATION
+  CERTIFICATE_OF_FORMATION
+  EIN_LETTER
+  ANNUAL_REPORT
+  RESOLUTION
+  AMENDMENT
+  REGISTERED_AGENT_LETTER
+  GOOD_STANDING_CERTIFICATE
+  BYLAWS
+
+  // Property Ownership Documents
+  DEED
+  TITLE_INSURANCE
+  SURVEY
+  APPRAISAL
+  PROPERTY_TAX_RECORD
+  HOA_DOCUMENTS
+
+  // Compliance Documents
+  LEAD_PAINT_DISCLOSURE
+  FAIR_HOUSING_NOTICE
+  MOLD_DISCLOSURE
+  BED_BUG_POLICY
+  ENVIRONMENTAL_REPORT
+  RADON_DISCLOSURE
+
+  // Other
   PHOTO
   OTHER
 }

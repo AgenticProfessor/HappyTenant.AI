@@ -57,31 +57,31 @@ export type PasswordFormValues = z.infer<typeof passwordSchema>;
 // Notification Preferences Schema
 export const notificationSchema = z.object({
   // Email notifications
-  emailEnabled: z.boolean().default(true),
-  emailRentPayments: z.boolean().default(true),
-  emailPaymentReminders: z.boolean().default(true),
-  emailMaintenanceRequests: z.boolean().default(true),
-  emailLeaseExpirations: z.boolean().default(true),
-  emailMessagesFromTenants: z.boolean().default(true),
+  emailEnabled: z.boolean(),
+  emailRentPayments: z.boolean(),
+  emailPaymentReminders: z.boolean(),
+  emailMaintenanceRequests: z.boolean(),
+  emailLeaseExpirations: z.boolean(),
+  emailMessagesFromTenants: z.boolean(),
 
   // SMS notifications
-  smsEnabled: z.boolean().default(false),
-  smsEmergencyMaintenance: z.boolean().default(true),
-  smsPaymentReceived: z.boolean().default(false),
-  smsCriticalAlerts: z.boolean().default(true),
+  smsEnabled: z.boolean(),
+  smsEmergencyMaintenance: z.boolean(),
+  smsPaymentReceived: z.boolean(),
+  smsCriticalAlerts: z.boolean(),
 
   // Push notifications
-  pushEnabled: z.boolean().default(true),
-  pushAllActivity: z.boolean().default(false),
-  pushMessagesOnly: z.boolean().default(true),
-  pushOff: z.boolean().default(false),
+  pushEnabled: z.boolean(),
+  pushAllActivity: z.boolean(),
+  pushMessagesOnly: z.boolean(),
+  pushOff: z.boolean(),
 });
 
 export type NotificationFormValues = z.infer<typeof notificationSchema>;
 
 // Payment Method Schema
 export const paymentMethodSchema = z.object({
-  paymentType: z.enum(['bank_account', 'debit_card']).default('bank_account'),
+  paymentType: z.enum(['bank_account', 'debit_card']),
 
   // Bank account fields
   accountHolderName: z.string().optional(),

@@ -180,12 +180,21 @@ export async function GET(request: Request) {
             },
           },
         },
-        screeningResults: true,
+        applicationLink: {
+          select: {
+            name: true,
+          },
+        },
+        _count: {
+          select: {
+            applicationNotes: true,
+          },
+        },
       },
       orderBy: { submittedAt: 'desc' },
     })
 
-    return NextResponse.json({ applications })
+    return NextResponse.json(applications)
   } catch (error) {
     console.error('Error fetching applications:', error)
     return NextResponse.json(

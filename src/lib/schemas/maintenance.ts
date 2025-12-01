@@ -46,17 +46,17 @@ export const maintenanceRequestSchema = z.object({
     .min(10, 'Please provide a detailed description (at least 10 characters)')
     .max(2000, 'Description must be less than 2000 characters'),
 
-  category: maintenanceCategoryEnum.default('other'),
+  category: maintenanceCategoryEnum,
 
-  priority: maintenancePriorityEnum.default('medium'),
+  priority: maintenancePriorityEnum,
 
-  entryPermissionGranted: z.boolean().default(false),
+  entryPermissionGranted: z.boolean(),
 
   entryInstructions: z.string().optional(),
 
-  preferredContactMethod: contactMethodEnum.default('in_app'),
+  preferredContactMethod: contactMethodEnum,
 
-  photos: z.array(z.string()).optional().default([]),
+  photos: z.array(z.string()).optional(),
 });
 
 /**
@@ -68,7 +68,7 @@ export type MaintenanceRequestFormData = z.infer<typeof maintenanceRequestSchema
  * Emergency check refinement
  */
 export const maintenanceRequestWithEmergencySchema = maintenanceRequestSchema.extend({
-  isEmergency: z.boolean().default(false),
+  isEmergency: z.boolean(),
 }).refine(
   (data) => {
     // If marked as emergency, priority should be emergency

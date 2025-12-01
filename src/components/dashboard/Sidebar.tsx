@@ -37,7 +37,7 @@ const mainNavigation = [
   { name: 'Payments', href: '/dashboard/payments', icon: CreditCard },
   { name: 'Maintenance', href: '/dashboard/maintenance', icon: Wrench },
   { name: 'Lease Profiles', href: '/dashboard/lease-profiles', icon: FileText },
-  { name: 'Docs & E-Sign', href: '/dashboard/docs', icon: PenTool },
+  { name: 'Documents & E-Sign', href: '/dashboard/documents', icon: PenTool },
 ];
 
 const rentersNavigation = [
@@ -87,8 +87,8 @@ export function Sidebar({ onNavigate }: SidebarProps) {
         className={cn(
           'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200',
           active
-            ? 'bg-white/10 text-white'
-            : 'text-slate-300 hover:bg-white/5 hover:text-white'
+            ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+            : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
         )}
       >
         <item.icon className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
@@ -104,21 +104,21 @@ export function Sidebar({ onNavigate }: SidebarProps) {
   };
 
   const SectionHeader = ({ children }: { children: React.ReactNode }) => (
-    <p className="px-3 py-2 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+    <p className="px-3 py-2 text-[11px] font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
       {children}
     </p>
   );
 
   return (
-    <div className="flex h-full flex-col bg-[#1a1f36]">
+    <div className="flex h-full flex-col bg-sidebar">
       {/* Logo */}
-      <div className="flex items-center gap-2 px-4 py-4 border-b border-white/10">
+      <div className="flex items-center gap-2 px-4 py-4 border-b border-sidebar-border">
         <Link href="/" className="flex items-center gap-2" aria-label="Happy Tenant home">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-500" aria-hidden="true">
-            <Home className="h-5 w-5 text-white" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary" aria-hidden="true">
+            <Home className="h-5 w-5 text-sidebar-primary-foreground" />
           </div>
-          <span className="text-lg font-bold text-white">
-            Happy<span className="text-indigo-400">Tenant</span>
+          <span className="text-lg font-bold text-sidebar-foreground">
+            Happy<span className="text-sidebar-primary">Tenant</span>
           </span>
         </Link>
       </div>
@@ -126,7 +126,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
       {/* Unlock Insights CTA */}
       <div className="px-3 py-3">
         <Button
-          className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-medium justify-start gap-2"
+          className="w-full bg-sidebar-primary hover:bg-sidebar-primary/90 text-sidebar-primary-foreground font-medium justify-start gap-2"
           size="sm"
         >
           <TrendingUp className="h-4 w-4" />
@@ -176,7 +176,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
       </nav>
 
       {/* Account Link at Bottom */}
-      <div className="border-t border-white/10 p-3">
+      <div className="border-t border-sidebar-border p-3">
         <Link
           href="/dashboard/account"
           onClick={onNavigate}
@@ -184,13 +184,13 @@ export function Sidebar({ onNavigate }: SidebarProps) {
           className={cn(
             'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200',
             isActive('/dashboard/account')
-              ? 'bg-white/10 text-white'
-              : 'text-slate-300 hover:bg-white/5 hover:text-white'
+              ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+              : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
           )}
         >
           <Settings className="h-5 w-5" aria-hidden="true" />
           Account
-          <ChevronRight className="h-4 w-4 ml-auto text-slate-500" />
+          <ChevronRight className="h-4 w-4 ml-auto text-sidebar-foreground/50" />
         </Link>
       </div>
     </div>

@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
   DialogContent,
@@ -54,17 +56,11 @@ import {
   Building,
   Sparkles,
   Plus,
+  AlertCircle,
 } from 'lucide-react';
-import { mockTenants, mockLeases, mockTransactions } from '@/data/mock-data';
+import { useTenantAuth, useTenantDashboard } from '@/contexts/tenant-auth-context';
+import { usePayments } from '@/hooks/api/use-payments';
 import { toast } from 'sonner';
-
-const currentTenant = mockTenants[0];
-const currentLease = mockLeases.find((l) => l.tenantId === currentTenant.id && l.status === 'active');
-
-// Filter transactions for the current tenant
-const tenantTransactions = mockTransactions
-  .filter((t) => t.tenantId === currentTenant.id)
-  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
 const autoPayFormSchema = z.object({
   paymentMethod: z.string().min(1, 'Please select a payment method'),
@@ -82,9 +78,18 @@ type AutoPayFormValues = z.infer<typeof autoPayFormSchema>;
 type PaymentMethodFormValues = z.infer<typeof paymentMethodFormSchema>;
 
 export default function TenantPaymentsPage() {
+  const { tenant, activeLease, balance, isLoading: isLoadingAuth, error } = useTenantAuth();
+  const { daysUntilRentDue, paymentStatus } = useTenantDashboard();
   const [autoPayEnabled, setAutoPayEnabled] = useState(true);
   const [autoPayDialogOpen, setAutoPayDialogOpen] = useState(false);
   const [addPaymentMethodOpen, setAddPaymentMethodOpen] = useState(false);
+
+  // Fetch tenant's payment history
+  const { data: paymentsData, isLoading: isLoadingPayments } = usePayments({
+    tenantId: tenant?.id,
+  });
+
+  const payments = paymentsData?.payments || [];
 
   const autoPayForm = useForm<AutoPayFormValues>({
     resolver: zodResolver(autoPayFormSchema),
@@ -104,38 +109,87 @@ export default function TenantPaymentsPage() {
     },
   });
 
-  const nextPaymentDate = new Date();
-  nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
-  nextPaymentDate.setDate(1);
+  const totalPaid = payments
+    .filter((p) => p.status === 'COMPLETED')
+    .reduce((sum, p) => sum + p.amount, 0);
 
-  const totalPaid = tenantTransactions
-    .filter(t => t.status === 'completed' && t.type === 'income')
-    .reduce((sum, t) => sum + t.amount, 0);
+  const handlePayNow = async () => {
+    try {
+      const response = await fetch('/api/tenant/payments/process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: activeLease?.rentAmount || 0,
+          paymentMethodId: 'default',
+        }),
+      });
 
-  const handlePayNow = () => {
-    toast.success('Payment processing...', {
-      description: `Processing payment of $${currentLease?.rentAmount.toLocaleString()}`,
-    });
+      if (!response.ok) {
+        throw new Error('Payment failed');
+      }
+
+      toast.success('Payment processing...', {
+        description: `Processing payment of $${activeLease?.rentAmount?.toLocaleString()}`,
+      });
+    } catch (err) {
+      toast.error('Payment failed', {
+        description: 'Please try again or contact support.',
+      });
+    }
   };
 
-  const handleAutoPaySave = (data: AutoPayFormValues) => {
-    console.log('AutoPay settings:', data);
-    toast.success('AutoPay settings updated!', {
-      description: 'Your automatic payment preferences have been saved.',
-    });
-    setAutoPayDialogOpen(false);
+  const handleAutoPaySave = async (data: AutoPayFormValues) => {
+    try {
+      const response = await fetch('/api/tenant/payments/autopay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          enabled: true,
+          paymentMethodId: data.paymentMethod,
+          dayOfMonth: parseInt(data.dayOfMonth),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save AutoPay settings');
+      }
+
+      toast.success('AutoPay settings updated!', {
+        description: 'Your automatic payment preferences have been saved.',
+      });
+      setAutoPayDialogOpen(false);
+    } catch (err) {
+      toast.error('Failed to save settings', {
+        description: 'Please try again.',
+      });
+    }
   };
 
-  const handleAddPaymentMethod = (data: PaymentMethodFormValues) => {
-    console.log('New payment method:', data);
-    toast.success('Payment method added!', {
-      description: 'Your new payment method has been saved.',
-    });
-    paymentMethodForm.reset();
-    setAddPaymentMethodOpen(false);
+  const handleAddPaymentMethod = async (data: PaymentMethodFormValues) => {
+    try {
+      const response = await fetch('/api/tenant/payments/methods', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add payment method');
+      }
+
+      toast.success('Payment method added!', {
+        description: 'Your new payment method has been saved.',
+      });
+      paymentMethodForm.reset();
+      setAddPaymentMethodOpen(false);
+    } catch (err) {
+      toast.error('Failed to add payment method', {
+        description: 'Please try again.',
+      });
+    }
   };
 
-  const handleDownloadReceipt = (transactionId: string, date: string) => {
+  const handleDownloadReceipt = (paymentId: string, date: string) => {
     toast.success('Downloading receipt...', {
       description: `Receipt for payment on ${date}`,
     });
@@ -146,6 +200,28 @@ export default function TenantPaymentsPage() {
       description: 'Your payment history will be downloaded as a CSV file.',
     });
   };
+
+  if (isLoadingAuth) {
+    return <PaymentsPageSkeleton />;
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Card className="max-w-md">
+          <CardContent className="pt-6 text-center">
+            <AlertCircle className="h-12 w-12 mx-auto text-destructive mb-4" />
+            <h2 className="text-lg font-semibold mb-2">Unable to Load Payments</h2>
+            <p className="text-muted-foreground">{error}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const nextPaymentDate = balance?.nextDueDate
+    ? new Date(balance.nextDueDate)
+    : new Date(new Date().setMonth(new Date().getMonth() + 1, 1));
 
   return (
     <div className="space-y-6">
@@ -173,8 +249,18 @@ export default function TenantPaymentsPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">$0.00</div>
-            <p className="text-xs text-muted-foreground">All caught up!</p>
+            <div
+              className={`text-2xl font-bold ${
+                (balance?.totalBalance || 0) === 0
+                  ? 'text-green-600'
+                  : 'text-amber-600'
+              }`}
+            >
+              ${(balance?.totalBalance || 0).toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {(balance?.totalBalance || 0) === 0 ? 'All caught up!' : 'Amount due'}
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -185,23 +271,34 @@ export default function TenantPaymentsPage() {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${currentLease?.rentAmount.toLocaleString()}</div>
+            <div className="text-2xl font-bold">
+              ${activeLease?.rentAmount?.toLocaleString() || '0'}
+            </div>
             <p className="text-xs text-muted-foreground">
-              Due {nextPaymentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              Due{' '}
+              {nextPaymentDate.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Paid (2024)
+              Total Paid ({new Date().getFullYear()})
             </CardTitle>
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalPaid.toLocaleString()}</div>
+            {isLoadingPayments ? (
+              <Skeleton className="h-8 w-24" />
+            ) : (
+              <div className="text-2xl font-bold">${totalPaid.toLocaleString()}</div>
+            )}
             <p className="text-xs text-muted-foreground">
-              {tenantTransactions.filter(t => t.status === 'completed').length} payments
+              {payments.filter((p) => p.status === 'COMPLETED').length} payments
             </p>
           </CardContent>
         </Card>
@@ -210,10 +307,18 @@ export default function TenantPaymentsPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">
               AutoPay
             </CardTitle>
-            <CheckCircle2 className={`h-4 w-4 ${autoPayEnabled ? 'text-green-500' : 'text-muted-foreground'}`} />
+            <CheckCircle2
+              className={`h-4 w-4 ${
+                autoPayEnabled ? 'text-green-500' : 'text-muted-foreground'
+              }`}
+            />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${autoPayEnabled ? 'text-green-600' : 'text-muted-foreground'}`}>
+            <div
+              className={`text-2xl font-bold ${
+                autoPayEnabled ? 'text-green-600' : 'text-muted-foreground'
+              }`}
+            >
               {autoPayEnabled ? 'Active' : 'Inactive'}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -235,7 +340,9 @@ export default function TenantPaymentsPage() {
               <div className="p-4 rounded-lg bg-muted/50">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-muted-foreground">Monthly Rent</span>
-                  <span className="font-semibold">${currentLease?.rentAmount.toLocaleString()}</span>
+                  <span className="font-semibold">
+                    ${activeLease?.rentAmount?.toLocaleString() || '0'}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-muted-foreground">Fees</span>
@@ -243,14 +350,19 @@ export default function TenantPaymentsPage() {
                 </div>
                 <div className="flex items-center justify-between pt-2 border-t">
                   <span className="font-medium">Total Due</span>
-                  <span className="text-xl font-bold">${currentLease?.rentAmount.toLocaleString()}</span>
+                  <span className="text-xl font-bold">
+                    ${activeLease?.rentAmount?.toLocaleString() || '0'}
+                  </span>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-medium">Payment Methods</p>
-                  <Dialog open={addPaymentMethodOpen} onOpenChange={setAddPaymentMethodOpen}>
+                  <Dialog
+                    open={addPaymentMethodOpen}
+                    onOpenChange={setAddPaymentMethodOpen}
+                  >
                     <DialogTrigger asChild>
                       <Button variant="link" size="sm" className="p-0 h-auto">
                         <Plus className="h-3 w-3 mr-1" />
@@ -265,14 +377,20 @@ export default function TenantPaymentsPage() {
                         </DialogDescription>
                       </DialogHeader>
                       <Form {...paymentMethodForm}>
-                        <form onSubmit={paymentMethodForm.handleSubmit(handleAddPaymentMethod)} className="space-y-4 py-4">
+                        <form
+                          onSubmit={paymentMethodForm.handleSubmit(handleAddPaymentMethod)}
+                          className="space-y-4 py-4"
+                        >
                           <FormField
                             control={paymentMethodForm.control}
                             name="type"
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>Payment Type</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <Select
+                                  onValueChange={field.onChange}
+                                  defaultValue={field.value}
+                                >
                                   <FormControl>
                                     <SelectTrigger>
                                       <SelectValue placeholder="Select type" />
@@ -308,7 +426,9 @@ export default function TenantPaymentsPage() {
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>
-                                  {paymentMethodForm.watch('type') === 'bank' ? 'Account Number' : 'Card Number'}
+                                  {paymentMethodForm.watch('type') === 'bank'
+                                    ? 'Account Number'
+                                    : 'Card Number'}
                                 </FormLabel>
                                 <FormControl>
                                   <Input placeholder="****1234" {...field} />
@@ -335,7 +455,11 @@ export default function TenantPaymentsPage() {
                           )}
 
                           <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setAddPaymentMethodOpen(false)}>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setAddPaymentMethodOpen(false)}
+                            >
                               Cancel
                             </Button>
                             <Button type="submit">Add Payment Method</Button>
@@ -405,21 +529,29 @@ export default function TenantPaymentsPage() {
                       </DialogDescription>
                     </DialogHeader>
                     <Form {...autoPayForm}>
-                      <form onSubmit={autoPayForm.handleSubmit(handleAutoPaySave)} className="space-y-4 py-4">
+                      <form
+                        onSubmit={autoPayForm.handleSubmit(handleAutoPaySave)}
+                        className="space-y-4 py-4"
+                      >
                         <FormField
                           control={autoPayForm.control}
                           name="paymentMethod"
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Payment Method</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                              >
                                 <FormControl>
                                   <SelectTrigger>
                                     <SelectValue placeholder="Select payment method" />
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  <SelectItem value="bank-4523">Chase Bank ****4523</SelectItem>
+                                  <SelectItem value="bank-4523">
+                                    Chase Bank ****4523
+                                  </SelectItem>
                                   <SelectItem value="card-1234">Visa ****1234</SelectItem>
                                 </SelectContent>
                               </Select>
@@ -434,7 +566,10 @@ export default function TenantPaymentsPage() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Payment Day</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                              >
                                 <FormControl>
                                   <SelectTrigger>
                                     <SelectValue placeholder="Select day of month" />
@@ -455,7 +590,11 @@ export default function TenantPaymentsPage() {
                         />
 
                         <DialogFooter>
-                          <Button type="button" variant="outline" onClick={() => setAutoPayDialogOpen(false)}>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setAutoPayDialogOpen(false)}
+                          >
                             Cancel
                           </Button>
                           <Button type="submit">Save Settings</Button>
@@ -468,7 +607,7 @@ export default function TenantPaymentsPage() {
 
               <Button className="w-full" size="lg" onClick={handlePayNow}>
                 <CreditCard className="h-4 w-4 mr-2" />
-                Pay ${currentLease?.rentAmount.toLocaleString()} Now
+                Pay ${activeLease?.rentAmount?.toLocaleString() || '0'} Now
               </Button>
               <p className="text-xs text-center text-muted-foreground">
                 Payment is secure and encrypted
@@ -491,66 +630,109 @@ export default function TenantPaymentsPage() {
           </Button>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tenantTransactions.map((transaction) => (
-                <TableRow key={transaction.id}>
-                  <TableCell>
-                    {new Date(transaction.date).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{transaction.description}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {transaction.category}
-                      </p>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-semibold">
-                    ${transaction.amount.toLocaleString()}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        transaction.status === 'completed' ? 'default' :
-                        transaction.status === 'pending' ? 'secondary' : 'outline'
-                      }
-                      className="gap-1"
-                    >
-                      {transaction.status === 'completed' && <CheckCircle2 className="h-3 w-3" />}
-                      {transaction.status === 'pending' && <Clock className="h-3 w-3" />}
-                      {transaction.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleDownloadReceipt(transaction.id, transaction.date)}
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
+          {isLoadingPayments ? (
+            <div className="space-y-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} className="h-12 w-full" />
               ))}
-            </TableBody>
-          </Table>
+            </div>
+          ) : payments.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="w-[50px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {payments.map((payment) => (
+                  <TableRow key={payment.id}>
+                    <TableCell>
+                      {new Date(payment.receivedAt).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">
+                          Rent Payment - {payment.lease.unit.property.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Unit {payment.lease.unit.unitNumber}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-semibold">
+                      ${payment.amount.toLocaleString()}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          payment.status === 'COMPLETED'
+                            ? 'default'
+                            : payment.status === 'PENDING'
+                            ? 'secondary'
+                            : 'outline'
+                        }
+                        className="gap-1"
+                      >
+                        {payment.status === 'COMPLETED' && (
+                          <CheckCircle2 className="h-3 w-3" />
+                        )}
+                        {payment.status === 'PENDING' && <Clock className="h-3 w-3" />}
+                        {payment.status.toLowerCase()}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() =>
+                          handleDownloadReceipt(payment.id, payment.receivedAt)
+                        }
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-8">
+              <Wallet className="h-12 w-12 mx-auto text-muted-foreground/50" />
+              <p className="mt-4 text-muted-foreground">No payment history yet</p>
+            </div>
+          )}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function PaymentsPageSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-32" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+        <Skeleton className="h-10 w-24" />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {[1, 2, 3, 4].map((i) => (
+          <Skeleton key={i} className="h-28" />
+        ))}
+      </div>
+      <Skeleton className="h-96" />
+      <Skeleton className="h-64" />
     </div>
   );
 }

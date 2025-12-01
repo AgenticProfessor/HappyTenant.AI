@@ -3,7 +3,7 @@
  * Single source of truth for API authentication
  */
 
-import { auth, currentUser } from '@clerk/nextjs/server';
+import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { ApiError } from './handlers';
 
@@ -12,7 +12,6 @@ import { ApiError } from './handlers';
  */
 export interface AuthenticatedUser {
   id: string;
-  clerkId: string;
   email: string;
   firstName: string | null;
   lastName: string | null;
@@ -31,7 +30,6 @@ export interface AuthenticatedUser {
  */
 export interface AuthenticatedTenant {
   id: string;
-  clerkId: string;
   email: string;
   firstName: string;
   lastName: string;
@@ -48,14 +46,14 @@ export interface AuthenticatedTenant {
  * @throws ApiError if not authenticated or user not found
  */
 export async function requireAuth(): Promise<AuthenticatedUser> {
-  const { userId } = await auth();
+  const session = await auth();
 
-  if (!userId) {
+  if (!session.userId) {
     throw new ApiError('Unauthorized', 401, 'UNAUTHORIZED');
   }
 
   const user = await prisma.user.findUnique({
-    where: { clerkId: userId },
+    where: { id: session.userId },
     include: {
       organization: {
         select: {
@@ -78,7 +76,6 @@ export async function requireAuth(): Promise<AuthenticatedUser> {
 
   return {
     id: user.id,
-    clerkId: user.clerkId,
     email: user.email,
     firstName: user.firstName,
     lastName: user.lastName,
@@ -96,15 +93,15 @@ export async function requireAuth(): Promise<AuthenticatedUser> {
  * @throws ApiError if not authenticated or tenant not found
  */
 export async function requireTenantAuth(): Promise<AuthenticatedTenant> {
-  const { userId } = await auth();
+  const session = await auth();
 
-  if (!userId) {
+  if (!session.userId) {
     throw new ApiError('Unauthorized', 401, 'UNAUTHORIZED');
   }
 
   const tenant = await prisma.tenant.findFirst({
     where: {
-      user: { clerkId: userId }
+      userId: session.userId,
     },
     include: {
       leaseTenants: {
@@ -129,7 +126,6 @@ export async function requireTenantAuth(): Promise<AuthenticatedTenant> {
 
   return {
     id: tenant.id,
-    clerkId: userId,
     email: tenant.email,
     firstName: tenant.firstName,
     lastName: tenant.lastName,

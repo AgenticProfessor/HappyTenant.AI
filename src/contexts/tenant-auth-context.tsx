@@ -1,7 +1,6 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useUser } from '@clerk/nextjs';
 
 /**
  * Tenant Auth Context
@@ -70,7 +69,6 @@ export interface TenantAuthContextType {
 const TenantAuthContext = createContext<TenantAuthContextType | undefined>(undefined);
 
 export function TenantAuthProvider({ children }: { children: React.ReactNode }) {
-  const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
   const [tenant, setTenant] = useState<TenantUser | null>(null);
   const [activeLease, setActiveLease] = useState<TenantLease | null>(null);
   const [balance, setBalance] = useState<TenantBalance | null>(null);
@@ -78,11 +76,6 @@ export function TenantAuthProvider({ children }: { children: React.ReactNode }) 
   const [error, setError] = useState<string | null>(null);
 
   const fetchTenantData = async () => {
-    if (!clerkUser) {
-      setIsLoading(false);
-      return;
-    }
-
     setIsLoading(true);
     setError(null);
 
@@ -115,74 +108,61 @@ export function TenantAuthProvider({ children }: { children: React.ReactNode }) 
   };
 
   useEffect(() => {
-    if (clerkLoaded) {
-      if (clerkUser) {
-        fetchTenantData();
-      } else {
-        setIsLoading(false);
-      }
-    }
-  }, [clerkUser, clerkLoaded]);
-
-  // For development: use mock data if API fails
-  useEffect(() => {
-    if (error && process.env.NODE_ENV === 'development') {
-      // Fallback to mock data in development
-      setTenant({
-        id: 'tenant-1',
-        clerkId: clerkUser?.id || 'mock-clerk-id',
-        email: clerkUser?.primaryEmailAddress?.emailAddress || 'tenant@example.com',
-        firstName: clerkUser?.firstName || 'John',
-        lastName: clerkUser?.lastName || 'Doe',
-        phone: '(555) 123-4567',
-      });
-      setActiveLease({
-        id: 'lease-1',
-        status: 'ACTIVE',
-        startDate: '2024-01-01',
-        endDate: '2025-01-01',
-        rentAmount: 2500,
-        securityDeposit: 2500,
-        rentDueDay: 1,
-        unit: {
-          id: 'unit-1',
-          name: 'Unit 3B',
-          bedrooms: 2,
-          bathrooms: 2,
-          squareFeet: 1200,
-        },
-        property: {
-          id: 'property-1',
-          name: 'The Heights',
-          address: '123 Main Street',
-          city: 'San Francisco',
-          state: 'CA',
-          zipCode: '94102',
-          managerName: 'Sarah Johnson',
-          managerPhone: '(555) 987-6543',
-          managerEmail: 'sarah@properties.com',
-          emergencyPhone: '(555) 999-9999',
-        },
-      });
-      setBalance({
-        currentDue: 0,
-        pastDue: 0,
-        totalBalance: 0,
-        lastPaymentDate: '2024-11-01',
-        lastPaymentAmount: 2500,
-        nextDueDate: '2024-12-01',
-        nextDueAmount: 2500,
-      });
-      setError(null);
-      setIsLoading(false);
-    }
-  }, [error, clerkUser]);
+    // Use mock data for development
+    setTenant({
+      id: 'tenant-1',
+      clerkId: 'mock-clerk-id',
+      email: 'tenant@example.com',
+      firstName: 'John',
+      lastName: 'Doe',
+      phone: '(555) 123-4567',
+    });
+    setActiveLease({
+      id: 'lease-1',
+      status: 'ACTIVE',
+      startDate: '2024-01-01',
+      endDate: '2025-01-01',
+      rentAmount: 2500,
+      securityDeposit: 2500,
+      rentDueDay: 1,
+      unit: {
+        id: 'unit-1',
+        name: 'Unit 3B',
+        bedrooms: 2,
+        bathrooms: 2,
+        squareFeet: 1200,
+      },
+      property: {
+        id: 'property-1',
+        name: 'The Heights',
+        address: '123 Main Street',
+        city: 'San Francisco',
+        state: 'CA',
+        zipCode: '94102',
+        managerName: 'Sarah Johnson',
+        managerPhone: '(555) 987-6543',
+        managerEmail: 'sarah@properties.com',
+        emergencyPhone: '(555) 999-9999',
+      },
+    });
+    setBalance({
+      currentDue: 0,
+      pastDue: 0,
+      totalBalance: 0,
+      lastPaymentDate: '2024-11-01',
+      lastPaymentAmount: 2500,
+      nextDueDate: '2024-12-01',
+      nextDueAmount: 2500,
+    });
+    setError(null);
+    setIsLoading(false);
+  }, []);
 
   const value: TenantAuthContextType = {
     tenant,
     activeLease,
     balance,
-    isLoading: !clerkLoaded || isLoading,
+    isLoading,
     isAuthenticated: !!tenant,
     error,
     refetch: fetchTenantData,
@@ -197,8 +177,17 @@ export function TenantAuthProvider({ children }: { children: React.ReactNode }) 
 
 export function useTenantAuth() {
   const context = useContext(TenantAuthContext);
+  // Return default context for SSR/prerendering
   if (context === undefined) {
-    throw new Error('useTenantAuth must be used within a TenantAuthProvider');
+    return {
+      tenant: null,
+      activeLease: null,
+      balance: null,
+      isLoading: true,
+      isAuthenticated: false,
+      error: null,
+      refetch: async () => {},
+    };
   }
   return context;
 }

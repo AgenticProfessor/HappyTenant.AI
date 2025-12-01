@@ -1,8 +1,6 @@
 'use client';
 
-import { createContext, useContext, ReactNode, useEffect } from 'react';
-import { useAuthStore } from '@/stores/auth-store';
-import { useUser, useClerk } from '@clerk/nextjs';
+import { createContext, useContext, ReactNode } from 'react';
 
 interface User {
   id: string;

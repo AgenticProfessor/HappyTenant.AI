@@ -1,12 +1,12 @@
+import * as React from 'react'
 import { render, RenderOptions } from '@testing-library/react'
-import { ReactElement, ReactNode } from 'react'
 
 // Custom render function with providers
 interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
   // Add provider props here if needed (e.g., initialState, theme, etc.)
 }
 
-function AllTheProviders({ children }: { children: ReactNode }) {
+function AllTheProviders({ children }: { children: React.ReactNode }) {
   return (
     <>
       {/* Add any global providers here (ThemeProvider, QueryClientProvider, etc.) */}
@@ -16,7 +16,7 @@ function AllTheProviders({ children }: { children: ReactNode }) {
 }
 
 export function customRender(
-  ui: ReactElement,
+  ui: React.ReactElement,
   options?: CustomRenderOptions
 ) {
   return render(ui, { wrapper: AllTheProviders, ...options })
@@ -24,13 +24,8 @@ export function customRender(
 
 // Helper to wait for loading states to finish
 export async function waitForLoadingToFinish() {
-  const { waitForElementToBeRemoved } = await import('@testing-library/react')
-  await waitForElementToBeRemoved(
-    () => document.querySelector('[data-loading="true"]'),
-    { timeout: 3000 }
-  ).catch(() => {
-    // If no loading element found, that's fine
-  })
+  // Wait for a short time to let React updates settle
+  await new Promise(resolve => setTimeout(resolve, 100))
 }
 
 // Test data factories
@@ -57,26 +52,6 @@ export const testData = {
     phone: '555-0100',
     ...overrides,
   }),
-}
-
-// Helper for testing forms
-export async function fillForm(fields: Record<string, string>) {
-  const { screen } = await import('@testing-library/react')
-  const userEvent = (await import('@testing-library/user-event')).default
-
-  for (const [label, value] of Object.entries(fields)) {
-    const input = screen.getByLabelText(new RegExp(label, 'i'))
-    await userEvent.clear(input)
-    await userEvent.type(input, value)
-  }
-}
-
-export async function submitForm(buttonText = /submit/i) {
-  const { screen } = await import('@testing-library/react')
-  const userEvent = (await import('@testing-library/user-event')).default
-
-  const submitButton = screen.getByRole('button', { name: buttonText })
-  await userEvent.click(submitButton)
 }
 
 // Type definitions for test data

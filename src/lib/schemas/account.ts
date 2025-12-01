@@ -189,7 +189,7 @@ export type CreateApiKeyFormValues = z.infer<typeof createApiKeySchema>;
 
 export const deleteAccountSchema = z.object({
   confirmation: z.literal('DELETE MY ACCOUNT', {
-    errorMap: () => ({ message: 'Please type "DELETE MY ACCOUNT" exactly' }),
+    message: 'Please type "DELETE MY ACCOUNT" exactly',
   }),
   password: z.string().min(1, 'Password is required'),
 });

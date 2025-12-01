@@ -19,9 +19,9 @@ export const propertyTypes = [
 
 // Property status enum
 export const propertyStatuses = [
-  'active',
-  'inactive',
-  'maintenance',
+  'ACTIVE',
+  'INACTIVE',
+  'SOLD',
 ] as const;
 
 // US States
@@ -44,8 +44,7 @@ export const propertySchema = z.object({
     .max(100, 'Property name must be less than 100 characters'),
 
   type: z.enum(propertyTypes, {
-    required_error: 'Property type is required',
-    invalid_type_error: 'Please select a valid property type',
+    message: 'Please select a valid property type',
   }),
 
   // Address fields
@@ -66,8 +65,7 @@ export const propertySchema = z.object({
     .max(100, 'City must be less than 100 characters'),
 
   state: z.enum(usStates, {
-    required_error: 'State is required',
-    invalid_type_error: 'Please select a valid state',
+    message: 'Please select a valid state',
   }),
 
   postalCode: z
@@ -82,37 +80,28 @@ export const propertySchema = z.object({
   yearBuilt: z
     .number()
     .int('Year must be a whole number')
-    .min(1800, 'Year must be 1800 or later')
+    .min(0, 'Year cannot be negative')
     .max(new Date().getFullYear() + 1, 'Year cannot be in the future')
-    .optional()
-    .or(z.literal(0))
-    .transform(val => val === 0 ? undefined : val),
+    .optional(),
 
   squareFeet: z
     .number()
     .int('Square feet must be a whole number')
-    .min(1, 'Square feet must be at least 1')
-    .optional()
-    .or(z.literal(0))
-    .transform(val => val === 0 ? undefined : val),
+    .min(0, 'Square feet cannot be negative')
+    .optional(),
 
   purchasePrice: z
     .number()
     .min(0, 'Purchase price cannot be negative')
-    .optional()
-    .or(z.literal(0))
-    .transform(val => val === 0 ? undefined : val),
+    .optional(),
 
   currentValue: z
     .number()
     .min(0, 'Current value cannot be negative')
-    .optional()
-    .or(z.literal(0))
-    .transform(val => val === 0 ? undefined : val),
+    .optional(),
 
   status: z.enum(propertyStatuses, {
-    required_error: 'Status is required',
-    invalid_type_error: 'Please select a valid status',
+    message: 'Please select a valid status',
   }),
 
   photos: z
@@ -137,6 +126,6 @@ export const defaultPropertyValues: Partial<PropertyFormValues> = {
   state: 'TX',
   postalCode: '',
   country: 'US',
-  status: 'active',
+  status: 'ACTIVE',
   photos: [],
 };
