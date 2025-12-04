@@ -19,21 +19,13 @@ type RouteParams = {
 // GET /api/charges/[id] - Get a single charge with payment history
 export async function GET(request: Request, { params }: RouteParams) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
     const { id } = await params
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
 
     const charge = await prisma.charge.findFirst({
       where: {
@@ -41,7 +33,7 @@ export async function GET(request: Request, { params }: RouteParams) {
         lease: {
           unit: {
             property: {
-              organizationId: user.organizationId,
+              organizationId: organizationId,
             },
           },
         },
@@ -99,21 +91,13 @@ export async function GET(request: Request, { params }: RouteParams) {
 // PATCH /api/charges/[id] - Update a charge
 export async function PATCH(request: Request, { params }: RouteParams) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
     const { id } = await params
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
 
     // Check if charge exists and belongs to user's organization
     const existingCharge = await prisma.charge.findFirst({
@@ -122,7 +106,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         lease: {
           unit: {
             property: {
-              organizationId: user.organizationId,
+              organizationId: organizationId,
             },
           },
         },
@@ -198,8 +182,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        organizationId: user.organizationId,
-        userId: user.id,
+        organizationId: organizationId,
+        userId,
         action: 'UPDATE',
         entityType: 'charge',
         entityId: charge.id,
@@ -222,21 +206,13 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 // DELETE /api/charges/[id] - Delete a charge (only if no payments)
 export async function DELETE(request: Request, { params }: RouteParams) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
     const { id } = await params
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
 
     // Check if charge exists and belongs to user's organization
     const existingCharge = await prisma.charge.findFirst({
@@ -245,7 +221,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
         lease: {
           unit: {
             property: {
-              organizationId: user.organizationId,
+              organizationId: organizationId,
             },
           },
         },
@@ -284,8 +260,8 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        organizationId: user.organizationId,
-        userId: user.id,
+        organizationId: organizationId,
+        userId,
         action: 'DELETE',
         entityType: 'charge',
         entityId: id,

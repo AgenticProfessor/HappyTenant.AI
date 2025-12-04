@@ -7,19 +7,10 @@ import type { ReportsListResponse, ReportListItem } from '@/lib/reports/types'
 // GET /api/reports - List all available reports with favorites OR generate a legacy report
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     // Get query params for report type and date range
@@ -38,8 +29,6 @@ export async function GET(request: Request) {
     const dateFilter: { gte?: Date; lte?: Date } = {}
     if (startDate) dateFilter.gte = new Date(startDate)
     if (endDate) dateFilter.lte = new Date(endDate)
-
-    const organizationId = user.organizationId
 
     switch (reportType) {
       case 'overview':

@@ -13,18 +13,10 @@ const querySchema = z.object({
 
 export async function GET(request: Request, { params }: { params: Promise<{ type: string }> }) {
   try {
-    const { userId } = await auth();
+    const { userId, organizationId } = await auth();
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -46,7 +38,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ type
 
     // Fetch transactions based on report type and account
     const transactions = await fetchTransactions(
-      user.organizationId,
+      organizationId,
       reportType,
       accountId,
       columnStart,

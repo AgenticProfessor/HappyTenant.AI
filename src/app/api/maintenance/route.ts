@@ -32,20 +32,12 @@ const maintenanceSchema = z.object({
 // GET /api/maintenance - List all maintenance requests for the organization
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
 
     // Get query params for filtering
     const { searchParams } = new URL(request.url)
@@ -61,7 +53,7 @@ export async function GET(request: Request) {
     const where: Record<string, unknown> = {
       unit: {
         property: {
-          organizationId: user.organizationId,
+          organizationId: organizationId,
         },
       },
     }
@@ -176,20 +168,12 @@ export async function GET(request: Request) {
 // POST /api/maintenance - Create a new maintenance request
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
 
     // Parse and validate request body
     const body = await request.json()
@@ -209,7 +193,7 @@ export async function POST(request: Request) {
       where: {
         id: data.unitId,
         property: {
-          organizationId: user.organizationId,
+          organizationId: organizationId,
         },
       },
       include: {
@@ -268,8 +252,8 @@ export async function POST(request: Request) {
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        organizationId: user.organizationId,
-        userId: user.id,
+        organizationId: organizationId,
+        userId,
         action: 'CREATE',
         entityType: 'maintenance_request',
         entityId: maintenanceRequest.id,

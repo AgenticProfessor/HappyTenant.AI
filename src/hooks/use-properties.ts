@@ -1,86 +1,176 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query-client';
-import { mockProperties, mockUnits, getPropertyById } from '@/data/mock-data';
+
+// Types based on Prisma schema
+export interface Property {
+  id: string;
+  organizationId: string;
+  name: string;
+  type: 'SINGLE_FAMILY' | 'MULTI_FAMILY' | 'APARTMENT' | 'CONDO' | 'TOWNHOUSE' | 'COMMERCIAL';
+  addressLine1: string;
+  addressLine2?: string | null;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  yearBuilt?: number | null;
+  squareFeet?: number | null;
+  lotSize?: number | null;
+  parkingSpaces?: number | null;
+  purchasePrice?: number | null;
+  purchaseDate?: Date | null;
+  currentValue?: number | null;
+  photos: string[];
+  notes?: string | null;
+  status: 'ACTIVE' | 'INACTIVE' | 'SOLD';
+  createdAt: Date;
+  updatedAt: Date;
+  units?: Unit[];
+  _count?: {
+    units: number;
+  };
+}
+
+export interface Unit {
+  id: string;
+  unitNumber: string;
+  status: string;
+  marketRent?: number | null;
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+}
 
 // Types for mutations
 interface CreatePropertyData {
   name: string;
-  type: string;
-  address: string;
+  type: Property['type'];
+  addressLine1: string;
+  addressLine2?: string;
   city: string;
   state: string;
-  zipCode: string;
-  units?: number;
+  postalCode: string;
+  country?: string;
+  yearBuilt?: number;
+  squareFeet?: number;
+  lotSize?: number;
+  parkingSpaces?: number;
+  purchasePrice?: number;
+  purchaseDate?: string;
+  currentValue?: number;
+  photos?: string[];
+  notes?: string;
 }
 
 interface UpdatePropertyData extends Partial<CreatePropertyData> {
   id: string;
+  status?: Property['status'];
 }
 
-// Simulated API delay
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+// API functions
+const fetchProperties = async (params?: {
+  status?: string;
+  type?: string;
+  search?: string;
+}): Promise<Property[]> => {
+  const searchParams = new URLSearchParams();
+  if (params?.status) searchParams.set('status', params.status);
+  if (params?.type) searchParams.set('type', params.type);
+  if (params?.search) searchParams.set('search', params.search);
 
-// Mock API functions - easily replaceable with real API calls
-const fetchProperties = async () => {
-  await delay(500);
-  return mockProperties;
-};
+  const url = `/api/properties${searchParams.toString() ? `?${searchParams}` : ''}`;
+  const response = await fetch(url);
 
-const fetchProperty = async (id: string) => {
-  await delay(300);
-  const property = getPropertyById(id);
-  if (!property) {
-    throw new Error('Property not found');
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Failed to fetch properties' }));
+    throw new Error(error.error || 'Failed to fetch properties');
   }
-  return property;
+
+  const data = await response.json();
+  return data.properties;
 };
 
-const fetchPropertyUnits = async (propertyId: string) => {
-  await delay(300);
-  return mockUnits.filter((unit) => unit.propertyId === propertyId);
-};
+const fetchProperty = async (id: string): Promise<Property> => {
+  const response = await fetch(`/api/properties/${id}`);
 
-const createProperty = async (data: CreatePropertyData) => {
-  await delay(800);
-  // In real implementation, this would call the API
-  const newProperty = {
-    id: `prop-${Date.now()}`,
-    organizationId: 'org-1',
-    ...data,
-  };
-  return newProperty;
-};
-
-const updateProperty = async (data: UpdatePropertyData) => {
-  await delay(800);
-  const { id, ...updates } = data;
-  const property = getPropertyById(id);
-  if (!property) {
-    throw new Error('Property not found');
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Failed to fetch property' }));
+    throw new Error(error.error || 'Failed to fetch property');
   }
-  // In real implementation, this would call the API
-  return { ...property, ...updates };
+
+  const data = await response.json();
+  return data.property;
 };
 
-const deleteProperty = async (id: string) => {
-  await delay(800);
-  const property = getPropertyById(id);
-  if (!property) {
-    throw new Error('Property not found');
+const fetchPropertyUnits = async (propertyId: string): Promise<Unit[]> => {
+  const response = await fetch(`/api/properties/${propertyId}/units`);
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Failed to fetch units' }));
+    throw new Error(error.error || 'Failed to fetch units');
   }
-  // In real implementation, this would call the API
-  return { success: true };
+
+  const data = await response.json();
+  return data.units || [];
+};
+
+const createProperty = async (data: CreatePropertyData): Promise<Property> => {
+  const response = await fetch('/api/properties', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Failed to create property' }));
+    throw new Error(error.error || 'Failed to create property');
+  }
+
+  const result = await response.json();
+  return result.property;
+};
+
+const updateProperty = async ({ id, ...data }: UpdatePropertyData): Promise<Property> => {
+  const response = await fetch(`/api/properties/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Failed to update property' }));
+    throw new Error(error.error || 'Failed to update property');
+  }
+
+  const result = await response.json();
+  return result.property;
+};
+
+const deleteProperty = async (id: string): Promise<{ success: boolean }> => {
+  const response = await fetch(`/api/properties/${id}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Failed to delete property' }));
+    throw new Error(error.error || 'Failed to delete property');
+  }
+
+  return response.json();
 };
 
 // Hooks
 
 /**
- * Fetch all properties
+ * Fetch all properties with optional filters
  */
-export function useProperties() {
+export function useProperties(params?: {
+  status?: string;
+  type?: string;
+  search?: string;
+}) {
   return useQuery({
-    queryKey: queryKeys.properties,
-    queryFn: fetchProperties,
+    queryKey: [...queryKeys.properties, params],
+    queryFn: () => fetchProperties(params),
   });
 }
 
@@ -151,13 +241,3 @@ export function useDeleteProperty() {
     },
   });
 }
-
-// Example of how to switch to real API:
-//
-// Replace the mock functions with:
-//
-// const fetchProperties = async () => {
-//   const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/properties`);
-//   if (!response.ok) throw new Error('Failed to fetch properties');
-//   return response.json();
-// };

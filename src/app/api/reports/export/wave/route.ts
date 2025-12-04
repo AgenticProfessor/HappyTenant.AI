@@ -26,26 +26,18 @@ const exportSchema = z.object({
 
 export async function POST(request: Request) {
     try {
-        const { userId } = await auth();
+        const { userId, organizationId } = await auth();
 
-        if (!userId) {
+        if (!userId || !organizationId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-
-        const user = await prisma.user.findUnique({
-            where: { id: userId },
-        });
-
-        if (!user) {
-            return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
 
         const body = await request.json();
         const { reportType, filters } = exportSchema.parse(body);
 
-        // Reuse CSV generator for now, but in a real implementation we would map columns 
+        // Reuse CSV generator for now, but in a real implementation we would map columns
         // to Wave's specific import format.
-        const csvContent = await generateReportData(prisma, user.organizationId, reportType, filters as ReportFilters);
+        const csvContent = await generateReportData(prisma, organizationId, reportType, filters as ReportFilters);
 
         // Return as downloadable file
         const filename = `${reportType}-wave-${filters.startDate}-to-${filters.endDate}.csv`;

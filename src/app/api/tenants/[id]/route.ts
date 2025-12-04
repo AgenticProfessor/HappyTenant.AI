@@ -50,26 +50,17 @@ type RouteParams = {
 // GET /api/tenants/[id] - Get a single tenant with full details
 export async function GET(request: Request, { params }: RouteParams) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
     const { id } = await params
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     const tenant = await prisma.tenant.findFirst({
       where: {
         id,
-        organizationId: user.organizationId,
+        organizationId,
       },
       include: {
         leaseTenants: {
@@ -172,27 +163,18 @@ export async function GET(request: Request, { params }: RouteParams) {
 // PATCH /api/tenants/[id] - Update a tenant
 export async function PATCH(request: Request, { params }: RouteParams) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
     const { id } = await params
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     // Check if tenant exists and belongs to user's organization
     const existingTenant = await prisma.tenant.findFirst({
       where: {
         id,
-        organizationId: user.organizationId,
+        organizationId,
       },
     })
 
@@ -249,8 +231,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        organizationId: user.organizationId,
-        userId: user.id,
+        organizationId,
+        userId,
         action: 'UPDATE',
         entityType: 'tenant',
         entityId: tenant.id,
@@ -273,27 +255,18 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 // DELETE /api/tenants/[id] - Delete (soft) a tenant
 export async function DELETE(request: Request, { params }: RouteParams) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
     const { id } = await params
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     // Check if tenant exists and belongs to user's organization
     const existingTenant = await prisma.tenant.findFirst({
       where: {
         id,
-        organizationId: user.organizationId,
+        organizationId,
       },
       include: {
         leaseTenants: {
@@ -331,8 +304,8 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        organizationId: user.organizationId,
-        userId: user.id,
+        organizationId,
+        userId,
         action: 'DELETE',
         entityType: 'tenant',
         entityId: tenant.id,

@@ -75,6 +75,13 @@ export interface TestTenant {
   phone: string
 }
 
-// Re-export everything from @testing-library/react
-export * from '@testing-library/react'
+// Re-export commonly used items from @testing-library/react
+export {
+  screen,
+  within,
+  waitFor,
+  fireEvent,
+  cleanup,
+  act,
+} from '@testing-library/react'
 export { customRender as render }

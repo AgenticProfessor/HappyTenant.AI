@@ -5,10 +5,11 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Mail, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Mail, AlertCircle, Loader2 } from 'lucide-react';
 
 const forgotPasswordSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -37,17 +38,23 @@ export default function ForgotPasswordPage() {
     setError(null);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const supabase = createClient();
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+        data.email,
+        {
+          redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+        }
+      );
 
-      // Simulate random error (10% chance)
-      if (Math.random() < 0.1) {
-        throw new Error('Unable to send reset email. Please try again later.');
+      if (resetError) {
+        setError(resetError.message);
+        return;
       }
 
       setIsSubmitted(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError('An unexpected error occurred. Please try again.');
+      console.error('Password reset error:', err);
     } finally {
       setIsLoading(false);
     }
@@ -126,7 +133,14 @@ export default function ForgotPasswordPage() {
         </div>
 
         <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? 'Sending...' : 'Reset password'}
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Sending...
+            </>
+          ) : (
+            'Reset password'
+          )}
         </Button>
 
         <Link href="/sign-in" className="block">

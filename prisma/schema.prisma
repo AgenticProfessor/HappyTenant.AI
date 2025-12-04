@@ -8,8 +8,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ============================================================
@@ -75,6 +76,8 @@ model Organization {
   stripeConnectAccount StripeConnectAccount?
   payouts          Payout[]
   businessEntities BusinessEntity[]
+  esignDocuments   ESignDocument[]
+  esignTemplates   ESignTemplate[]
 
   @@index([slug])
   @@index([stripeConnectAccountId])
@@ -245,6 +248,7 @@ model User {
   organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   // Auth & Identity
+  supabaseId       String?  @unique  // Supabase Auth UID
   email            String   @unique
   emailVerified    DateTime?
   passwordHash     String?  // For credential-based auth
@@ -277,6 +281,8 @@ model User {
   conversationParticipants  ConversationParticipant[]
   notifications             Notification[]
   auditLogs                 AuditLog[]
+  esignDocumentsCreated     ESignDocument[]
+  esignSignerAs             ESignSigner[]        @relation("ESignSignerUser")
 
   @@index([organizationId])
   @@index([email])
@@ -340,6 +346,7 @@ model Property {
   // Relations
   units            Unit[]
   documents        Document[]
+  esignDocuments   ESignDocument[]
 
   @@index([organizationId])
   @@index([businessEntityId])
@@ -513,6 +520,7 @@ model Tenant {
   stripeCustomer       StripeCustomer?
   paymentMethods       TenantPaymentMethod[]
   scheduledPayments    ScheduledPayment[]
+  esignSigners         ESignSigner[]
 
   @@index([organizationId])
   @@index([email])
@@ -740,6 +748,7 @@ model Application {
   verifications    ApplicationVerification[]
   applicationNotes ApplicationNote[]
   statusHistory    ApplicationStatusHistory[]
+  esignDocuments   ESignDocument[]
 
   @@index([unitId])
   @@index([status])
@@ -874,6 +883,7 @@ model Lease {
   payments         Payment[]
   documents        Document[]
   scheduledPayments ScheduledPayment[]
+  esignDocuments   ESignDocument[]
 
   @@index([unitId])
   @@index([status])
@@ -1619,10 +1629,259 @@ model Document {
   @@index([vendorId])
 }
 
+// ============================================================
+// E-SIGN MODELS
+// ============================================================
+
+model ESignDocument {
+  id               String   @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Document info
+  name             String
+  description      String?
+  originalFileUrl  String
+  originalFileName String
+  fileSize         Int
+  mimeType         String
+  pageCount        Int      @default(1)
+
+  // Status
+  status           ESignDocumentStatus @default(DRAFT)
+
+  // Relations to other entities
+  propertyId       String?
+  property         Property? @relation(fields: [propertyId], references: [id])
+  leaseId          String?
+  lease            Lease?    @relation(fields: [leaseId], references: [id])
+  applicationId    String?
+  application      Application? @relation(fields: [applicationId], references: [id])
+
+  // Settings
+  message          String?   // Message to signers
+  reminderEnabled  Boolean   @default(true)
+  reminderDays     Int       @default(3)
+
+  // Created by
+  createdById      String
+  createdBy        User      @relation(fields: [createdById], references: [id])
+
+  // Timestamps
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  sentAt           DateTime?
+  completedAt      DateTime?
+  expiresAt        DateTime?
+
+  // Relations
+  signers          ESignSigner[]
+  fields           ESignField[]
+  auditLogs        ESignAuditLog[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([propertyId])
+  @@index([leaseId])
+}
+
+model ESignSigner {
+  id               String   @id @default(cuid())
+  documentId       String
+  document         ESignDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  // Signer info
+  name             String
+  email            String
+  phone            String?
+  role             SignerRole @default(OTHER)
+  order            Int       @default(1)
+
+  // Reference to existing entities
+  tenantId         String?
+  tenant           Tenant?   @relation(fields: [tenantId], references: [id])
+  userId           String?
+  user             User?     @relation("ESignSignerUser", fields: [userId], references: [id])
+
+  // Status
+  status           SignerStatus @default(PENDING)
+  viewedAt         DateTime?
+  signedAt         DateTime?
+  declinedAt       DateTime?
+  declineReason    String?
+
+  // Security
+  accessToken      String?   @unique @default(cuid())
+  accessCode       String?   // Optional PIN
+  signatureIp      String?
+  signatureUserAgent String?
+
+  // Notification tracking
+  signingUrl       String?
+  lastReminderSentAt DateTime?
+
+  // UI color
+  color            String    @default("#3B82F6")
+
+  // Timestamps
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  fields           ESignField[]
+
+  @@index([documentId])
+  @@index([email])
+  @@index([accessToken])
+}
+
+model ESignField {
+  id               String   @id @default(cuid())
+  documentId       String
+  document         ESignDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  signerId         String
+  signer           ESignSigner @relation(fields: [signerId], references: [id], onDelete: Cascade)
+
+  // Field type
+  type             SigningFieldType
+  label            String?
+  placeholder      String?
+  required         Boolean   @default(true)
+
+  // Position on document
+  pageNumber       Int
+  x                Float     // Percentage from left (0-100)
+  y                Float     // Percentage from top (0-100)
+  width            Float     // Percentage of page width
+  height           Float     // Percentage of page height
+
+  // Field options
+  options          String[]  @default([])
+  validation       String?
+  maxLength        Int?
+
+  // Value
+  value            String?
+  signedAt         DateTime?
+
+  // Timestamps
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([documentId])
+  @@index([signerId])
+}
+
+model ESignAuditLog {
+  id               String   @id @default(cuid())
+  documentId       String
+  document         ESignDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  // Action info
+  action           ESignAuditAction
+  actorType        String    // USER, SIGNER, SYSTEM
+  actorId          String?
+  actorEmail       String?
+  actorName        String?
+
+  // Additional data
+  metadata         Json?
+  ipAddress        String?
+  userAgent        String?
+
+  // Timestamp
+  createdAt        DateTime  @default(now())
+
+  @@index([documentId])
+  @@index([action])
+}
+
+model ESignTemplate {
+  id               String   @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Template info
+  name             String
+  description      String?
+  fileUrl          String
+  fileName         String
+  pageCount        Int       @default(1)
+
+  // Default signers configuration
+  signerRoles      Json?     // Array of {role, order}
+
+  // Default fields configuration
+  fieldPlacements  Json?     // Array of field definitions
+
+  // Settings
+  isActive         Boolean   @default(true)
+
+  // Timestamps
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([organizationId])
+}
+
+// E-Sign Enums
+enum ESignDocumentStatus {
+  DRAFT
+  PENDING_SIGNATURES
+  PARTIALLY_SIGNED
+  COMPLETED
+  EXPIRED
+  CANCELLED
+}
+
+enum SignerRole {
+  LANDLORD
+  TENANT
+  CO_SIGNER
+  WITNESS
+  OTHER
+}
+
+enum SignerStatus {
+  PENDING
+  VIEWED
+  SIGNED
+  DECLINED
+}
+
+enum SigningFieldType {
+  SIGNATURE
+  INITIALS
+  DATE
+  TEXT
+  CHECKBOX
+  DROPDOWN
+}
+
+enum ESignAuditAction {
+  DOCUMENT_CREATED
+  DOCUMENT_UPDATED
+  DOCUMENT_SENT
+  DOCUMENT_VIEWED
+  DOCUMENT_COMPLETED
+  DOCUMENT_EXPIRED
+  DOCUMENT_CANCELLED
+  SIGNER_ADDED
+  SIGNER_REMOVED
+  SIGNER_VIEWED
+  SIGNER_SIGNED
+  SIGNER_DECLINED
+  FIELD_ADDED
+  FIELD_REMOVED
+  FIELDS_UPDATED
+  REMINDER_SENT
+  NOTIFICATION_SENT
+}
+
 enum StorageProvider {
   LOCAL
   S3
-  CLOUDINARY
+  SUPABASE
 }
 
 enum DocumentType {

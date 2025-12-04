@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,14 +27,11 @@ import {
   Phone,
   Mail,
   Star,
-  Clock,
   Briefcase,
-  ChevronDown,
   MoreHorizontal,
   AlertCircle,
   CheckCircle2,
   Palmtree,
-  Filter,
   Building2,
   Wrench,
   Zap,
@@ -44,12 +42,11 @@ import {
   Sparkles,
   Trees,
   HardHat,
-  PaintBucket,
   Paintbrush,
 } from 'lucide-react';
-import { mockVendors } from '@/data/mock-data';
 import { VENDOR_CATEGORIES, type Vendor, type VendorCategory } from '@/types/vendor';
 import { AddVendorDialog } from '@/components/vendors/AddVendorDialog';
+import { useVendors, type Vendor as ApiVendor } from '@/hooks';
 
 // Helper function to get category icon
 const getCategoryIcon = (category: string) => {
@@ -89,16 +86,58 @@ const StarRating = ({ rating }: { rating: number }) => {
   );
 };
 
+// Default working hours
+const defaultWorkingHours: Vendor['workingHours'] = {
+  monday: { start: '09:00', end: '17:00' },
+  tuesday: { start: '09:00', end: '17:00' },
+  wednesday: { start: '09:00', end: '17:00' },
+  thursday: { start: '09:00', end: '17:00' },
+  friday: { start: '09:00', end: '17:00' },
+  saturday: null,
+  sunday: null,
+};
+
+// Convert API vendor to UI vendor type
+const mapApiVendorToVendor = (apiVendor: ApiVendor): Vendor => ({
+  id: apiVendor.id,
+  organizationId: apiVendor.organizationId,
+  name: apiVendor.companyName || apiVendor.name,
+  contactName: apiVendor.name,
+  email: apiVendor.email ?? '',
+  phone: apiVendor.phone ?? '',
+  categories: (apiVendor.categories || []) as VendorCategory[],
+  serviceArea: apiVendor.serviceAreas || [],
+  workingHours: defaultWorkingHours,
+  status: (apiVendor.status?.toLowerCase() || 'active') as 'active' | 'inactive' | 'on_vacation',
+  priceTier: 'mid' as const,
+  rating: apiVendor.rating ?? 4.5,
+  totalJobs: apiVendor.stats?.totalJobs ?? apiVendor._count?.maintenanceRequests ?? 0,
+  onTimePercentage: apiVendor.stats?.completionRate ?? 95,
+  emergencyAvailable: false, // TODO: Add to vendor model if needed
+  preferredContactMethod: 'phone' as const,
+  hourlyRate: apiVendor.hourlyRate ?? undefined,
+  minimumCharge: apiVendor.minimumCharge ?? undefined,
+  createdAt: new Date(apiVendor.createdAt).toISOString(),
+  updatedAt: new Date(apiVendor.updatedAt).toISOString(),
+});
+
 export default function VendorsPage() {
+  const { data: apiVendors, isLoading, error } = useVendors();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
   const [filterPriceTier, setFilterPriceTier] = useState<string | null>(null);
   const [addVendorOpen, setAddVendorOpen] = useState(false);
-  const [vendors, setVendors] = useState<Vendor[]>(mockVendors as unknown as Vendor[]);
+  const [localVendors, setLocalVendors] = useState<Vendor[]>([]);
+
+  // Combine API vendors with locally added vendors
+  const vendors = useMemo(() => {
+    const mapped = (apiVendors || []).map(mapApiVendorToVendor);
+    return [...localVendors, ...mapped];
+  }, [apiVendors, localVendors]);
 
   const handleVendorAdded = (newVendor: Vendor) => {
-    setVendors((prev) => [newVendor, ...prev]);
+    setLocalVendors((prev) => [newVendor, ...prev]);
   };
 
   // Filter vendors based on search and filters
@@ -166,6 +205,19 @@ export default function VendorsPage() {
     }
   };
 
+  // Show error state
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <h2 className="text-lg font-semibold">Failed to load vendors</h2>
+          <p className="text-muted-foreground">Please try refreshing the page</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Page header */}
@@ -198,8 +250,14 @@ export default function VendorsPage() {
             <Users2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalVendors}</div>
-            <p className="text-xs text-muted-foreground">In your network</p>
+            {isLoading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{totalVendors}</div>
+                <p className="text-xs text-muted-foreground">In your network</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -211,8 +269,14 @@ export default function VendorsPage() {
             <CheckCircle2 className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{activeVendors}</div>
-            <p className="text-xs text-muted-foreground">Available now</p>
+            {isLoading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-green-600">{activeVendors}</div>
+                <p className="text-xs text-muted-foreground">Available now</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -224,10 +288,16 @@ export default function VendorsPage() {
             <Star className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-amber-600">
-              {averageRating.toFixed(1)}
-            </div>
-            <p className="text-xs text-muted-foreground">Out of 5.0</p>
+            {isLoading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-amber-600">
+                  {averageRating.toFixed(1)}
+                </div>
+                <p className="text-xs text-muted-foreground">Out of 5.0</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -239,8 +309,14 @@ export default function VendorsPage() {
             <Briefcase className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{uniqueCategories}</div>
-            <p className="text-xs text-muted-foreground">Service types</p>
+            {isLoading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{uniqueCategories}</div>
+                <p className="text-xs text-muted-foreground">Service types</p>
+              </>
+            )}
           </CardContent>
         </Card>
       </section>
@@ -297,7 +373,23 @@ export default function VendorsPage() {
       </div>
 
       {/* Vendor Cards */}
-      {filteredVendors.length > 0 ? (
+      {isLoading ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Card key={i}>
+              <CardHeader className="pb-3">
+                <Skeleton className="h-6 w-40" />
+                <Skeleton className="h-4 w-24 mt-2" />
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-8 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : filteredVendors.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredVendors.map((vendor) => {
             const statusBadge = getStatusBadge(vendor.status);
@@ -358,7 +450,7 @@ export default function VendorsPage() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Phone className="h-4 w-4 flex-shrink-0" />
-                      <span className="truncate">{vendor.phone}</span>
+                      <span className="truncate">{vendor.phone || 'No phone'}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Mail className="h-4 w-4 flex-shrink-0" />

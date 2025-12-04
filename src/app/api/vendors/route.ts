@@ -38,19 +38,10 @@ const vendorSchema = z.object({
 // GET /api/vendors - List all vendors for the organization
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     // Get query params for filtering
@@ -61,7 +52,7 @@ export async function GET(request: Request) {
 
     // Build filter
     const where: Record<string, unknown> = {
-      organizationId: user.organizationId,
+      organizationId,
     }
 
     if (type) {
@@ -90,6 +81,13 @@ export async function GET(request: Request) {
             maintenanceRequests: true,
           },
         },
+        maintenanceRequests: {
+          select: {
+            id: true,
+            status: true,
+            actualCost: true,
+          },
+        },
       },
       orderBy: [
         { name: 'asc' },
@@ -99,8 +97,37 @@ export async function GET(request: Request) {
     // Calculate summary
     const activeVendors = vendors.filter(v => v.status === 'ACTIVE').length
 
+    // Enhance vendors with calculated stats
+    const vendorsWithStats = vendors.map(vendor => {
+      const totalJobs = vendor._count.maintenanceRequests;
+      const completedJobs = vendor.maintenanceRequests.filter(
+        req => req.status === 'COMPLETED'
+      ).length;
+      const totalSpent = vendor.maintenanceRequests.reduce(
+        (sum, req) => sum + Number(req.actualCost || 0),
+        0
+      );
+      const completionRate = totalJobs > 0
+        ? Math.round((completedJobs / totalJobs) * 100)
+        : 0;
+
+      // Remove maintenanceRequests from response (we only needed it for calculations)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { maintenanceRequests, ...vendorData } = vendor;
+
+      return {
+        ...vendorData,
+        stats: {
+          totalJobs,
+          completedJobs,
+          totalSpent,
+          completionRate,
+        },
+      };
+    });
+
     return NextResponse.json({
-      vendors,
+      vendors: vendorsWithStats,
       summary: {
         total: vendors.length,
         active: activeVendors,
@@ -118,19 +145,10 @@ export async function GET(request: Request) {
 // POST /api/vendors - Create a new vendor
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     // Parse and validate request body
@@ -149,7 +167,7 @@ export async function POST(request: Request) {
     // Create vendor
     const vendor = await prisma.vendor.create({
       data: {
-        organizationId: user.organizationId,
+        organizationId,
         name: data.name,
         categories: data.type ? [data.type] : [],
         contactName: data.contactName,
@@ -170,8 +188,8 @@ export async function POST(request: Request) {
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        organizationId: user.organizationId,
-        userId: user.id,
+        organizationId,
+        userId,
         action: 'CREATE',
         entityType: 'vendor',
         entityId: vendor.id,

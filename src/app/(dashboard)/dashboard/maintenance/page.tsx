@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,36 +49,95 @@ import {
   Sparkles,
   Zap,
 } from 'lucide-react';
-import { mockMaintenanceRequests, mockUnits, getPropertyById, mockTenants } from '@/data/mock-data';
+import { useMaintenanceRequests, type MaintenanceRequest } from '@/hooks';
 import { useStewardContext } from '@/hooks/use-steward-context';
+
+// Map API status to UI status
+const mapApiStatusToUI = (status: MaintenanceRequest['status']): string => {
+  switch (status) {
+    case 'SUBMITTED':
+    case 'ACKNOWLEDGED':
+      return 'open';
+    case 'SCHEDULED':
+    case 'IN_PROGRESS':
+      return 'in_progress';
+    case 'COMPLETED':
+      return 'completed';
+    case 'CANCELLED':
+      return 'cancelled';
+    default:
+      return 'open';
+  }
+};
+
+// Map API priority to UI priority
+const mapApiPriorityToUI = (priority: MaintenanceRequest['priority']): string => {
+  switch (priority) {
+    case 'EMERGENCY':
+      return 'urgent';
+    case 'HIGH':
+      return 'high';
+    case 'NORMAL':
+      return 'normal';
+    case 'LOW':
+      return 'low';
+    default:
+      return 'normal';
+  }
+};
 
 export default function MaintenancePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
   const [filterPriority, setFilterPriority] = useState<string | null>(null);
 
+  // Fetch maintenance requests from API
+  const { data: maintenanceRequests, isLoading, error } = useMaintenanceRequests();
 
+  // Filter requests based on search and filters
+  const filteredRequests = useMemo(() => {
+    if (!maintenanceRequests) return [];
 
-  const filteredRequests = mockMaintenanceRequests.filter((request) => {
-    const matchesSearch =
-      request.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      request.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = !filterStatus || request.status === filterStatus;
-    const matchesPriority = !filterPriority || request.priority === filterPriority;
-    return matchesSearch && matchesStatus && matchesPriority;
-  });
+    return maintenanceRequests.filter((request) => {
+      const matchesSearch =
+        request.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        request.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const uiStatus = mapApiStatusToUI(request.status);
+      const uiPriority = mapApiPriorityToUI(request.priority);
+      const matchesStatus = !filterStatus || uiStatus === filterStatus;
+      const matchesPriority = !filterPriority || uiPriority === filterPriority;
+      return matchesSearch && matchesStatus && matchesPriority;
+    });
+  }, [maintenanceRequests, searchQuery, filterStatus, filterPriority]);
 
-  const openRequests = mockMaintenanceRequests.filter((r) => (r.status as string) === 'open').length;
-  const inProgressRequests = mockMaintenanceRequests.filter((r) => (r.status as string) === 'in_progress').length;
-  const completedRequests = mockMaintenanceRequests.filter((r) => (r.status as string) === 'completed').length;
-  const urgentRequests = mockMaintenanceRequests.filter((r) => ((r.priority as string) === 'urgent' || (r.priority as string) === 'high') && (r.status as string) !== 'completed').length;
+  // Calculate stats
+  const stats = useMemo(() => {
+    if (!maintenanceRequests) return { openRequests: 0, inProgressRequests: 0, completedRequests: 0, urgentRequests: 0 };
+
+    const openRequests = maintenanceRequests.filter((r) =>
+      r.status === 'SUBMITTED' || r.status === 'ACKNOWLEDGED'
+    ).length;
+    const inProgressRequests = maintenanceRequests.filter((r) =>
+      r.status === 'SCHEDULED' || r.status === 'IN_PROGRESS'
+    ).length;
+    const completedRequests = maintenanceRequests.filter((r) =>
+      r.status === 'COMPLETED'
+    ).length;
+    const urgentRequests = maintenanceRequests.filter((r) =>
+      (r.priority === 'EMERGENCY' || r.priority === 'HIGH') && r.status !== 'COMPLETED'
+    ).length;
+
+    return { openRequests, inProgressRequests, completedRequests, urgentRequests };
+  }, [maintenanceRequests]);
+
+  const { openRequests, inProgressRequests, completedRequests, urgentRequests } = stats;
 
   useStewardContext({
     type: 'page',
     name: 'maintenance-list',
     description: 'List of all maintenance requests',
     data: {
-      totalRequests: mockMaintenanceRequests.length,
+      totalRequests: maintenanceRequests?.length ?? 0,
       openRequests,
       inProgressRequests,
       completedRequests,
@@ -85,15 +145,6 @@ export default function MaintenancePage() {
     },
     url: '/dashboard/maintenance',
   });
-
-  const getUnitInfo = (unitId: string) => {
-    const unit = mockUnits.find((u) => u.id === unitId);
-    if (unit) {
-      const property = getPropertyById(unit.propertyId);
-      return { unit, property };
-    }
-    return null;
-  };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -247,7 +298,11 @@ export default function MaintenancePage() {
             <AlertCircle className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{openRequests}</div>
+            {isLoading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <div className="text-2xl font-bold text-red-600">{openRequests}</div>
+            )}
             <p className="text-xs text-muted-foreground">Need attention</p>
           </CardContent>
         </Card>
@@ -259,7 +314,11 @@ export default function MaintenancePage() {
             <Clock className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-amber-600">{inProgressRequests}</div>
+            {isLoading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <div className="text-2xl font-bold text-amber-600">{inProgressRequests}</div>
+            )}
             <p className="text-xs text-muted-foreground">Being worked on</p>
           </CardContent>
         </Card>
@@ -271,7 +330,11 @@ export default function MaintenancePage() {
             <CheckCircle2 className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{completedRequests}</div>
+            {isLoading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <div className="text-2xl font-bold text-green-600">{completedRequests}</div>
+            )}
             <p className="text-xs text-muted-foreground">This month</p>
           </CardContent>
         </Card>
@@ -283,7 +346,11 @@ export default function MaintenancePage() {
             <AlertTriangle className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{urgentRequests}</div>
+            {isLoading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <div className="text-2xl font-bold text-red-600">{urgentRequests}</div>
+            )}
             <p className="text-xs text-muted-foreground">High priority</p>
           </CardContent>
         </Card>
@@ -335,53 +402,102 @@ export default function MaintenancePage() {
 
       {/* Requests list */}
       <div className="space-y-4">
-        {filteredRequests.map((request) => {
-          const unitInfo = getUnitInfo(request.unitId);
-          const tenant = mockTenants.find((t) => t.id === request.tenantId);
+        {error && (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <AlertCircle className="h-12 w-12 mx-auto text-destructive" />
+              <h3 className="mt-4 font-semibold text-destructive">Error loading maintenance requests</h3>
+              <p className="text-muted-foreground mt-1">
+                {error.message || 'Please try again later.'}
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {isLoading && (
+          <>
+            {[1, 2, 3].map((i) => (
+              <Card key={i}>
+                <CardContent className="p-6">
+                  <div className="flex flex-col lg:flex-row lg:items-start gap-4">
+                    <Skeleton className="h-12 w-12 rounded-lg flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <Skeleton className="h-6 w-48" />
+                        <Skeleton className="h-5 w-16" />
+                        <Skeleton className="h-5 w-20" />
+                      </div>
+                      <Skeleton className="h-4 w-full mb-4" />
+                      <div className="flex flex-wrap gap-4">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-4 w-28" />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <Skeleton className="h-8 w-24" />
+                      <Skeleton className="h-8 w-28" />
+                      <Skeleton className="h-8 w-8" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </>
+        )}
+
+        {!isLoading && !error && filteredRequests.map((request) => {
+          const uiPriority = mapApiPriorityToUI(request.priority);
+          const uiStatus = mapApiStatusToUI(request.status);
+          const tenantName = request.tenant
+            ? `${request.tenant.firstName} ${request.tenant.lastName}`
+            : null;
 
           return (
             <Card key={request.id}>
               <CardContent className="p-6">
                 <div className="flex flex-col lg:flex-row lg:items-start gap-4">
-                  <div className={`h-12 w-12 rounded-lg flex items-center justify-center flex-shrink-0 ${(request.priority as string) === 'urgent' || request.priority === 'high' ? 'bg-red-100' :
-                    request.priority === 'normal' ? 'bg-blue-100' : 'bg-gray-100'
-                    }`}>
-                    <Wrench className={`h-6 w-6 ${(request.priority as string) === 'urgent' || request.priority === 'high' ? 'text-red-600' :
-                      request.priority === 'normal' ? 'text-blue-600' : 'text-gray-600'
-                      }`} />
+                  <div className={`h-12 w-12 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                    uiPriority === 'urgent' || uiPriority === 'high' ? 'bg-red-100' :
+                    uiPriority === 'normal' ? 'bg-blue-100' : 'bg-gray-100'
+                  }`}>
+                    <Wrench className={`h-6 w-6 ${
+                      uiPriority === 'urgent' || uiPriority === 'high' ? 'text-red-600' :
+                      uiPriority === 'normal' ? 'text-blue-600' : 'text-gray-600'
+                    }`} />
                   </div>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-2">
                       <h3 className="font-semibold text-lg">{request.title}</h3>
-                      <Badge className={getPriorityColor(request.priority)}>
-                        {request.priority}
+                      <Badge className={getPriorityColor(uiPriority)}>
+                        {uiPriority}
                       </Badge>
                       <Badge
                         variant={
-                          request.status === 'open' ? 'destructive' :
-                            request.status === 'in_progress' ? 'default' : 'secondary'
+                          uiStatus === 'open' ? 'destructive' :
+                            uiStatus === 'in_progress' ? 'default' : 'secondary'
                         }
                         className="gap-1"
                       >
-                        {getStatusIcon(request.status)}
-                        {request.status.replace('_', ' ')}
+                        {getStatusIcon(uiStatus)}
+                        {uiStatus.replace('_', ' ')}
                       </Badge>
                     </div>
 
                     <p className="text-muted-foreground mb-4">{request.description}</p>
 
                     <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                      {unitInfo && (
+                      {request.unit && (
                         <div className="flex items-center gap-1">
                           <Building2 className="h-4 w-4" />
-                          <span>{unitInfo.property?.name} - {unitInfo.unit?.name}</span>
+                          <span>{request.unit.property?.name} - Unit {request.unit.unitNumber}</span>
                         </div>
                       )}
-                      {tenant && (
+                      {tenantName && (
                         <div className="flex items-center gap-1">
                           <User className="h-4 w-4" />
-                          <span>{tenant.name}</span>
+                          <span>{tenantName}</span>
                         </div>
                       )}
                       <div className="flex items-center gap-1">
@@ -429,7 +545,7 @@ export default function MaintenancePage() {
           );
         })}
 
-        {filteredRequests.length === 0 && (
+        {!isLoading && !error && filteredRequests.length === 0 && (
           <Card>
             <CardContent className="p-12 text-center">
               <Wrench className="h-12 w-12 mx-auto text-muted-foreground/50" />

@@ -34,19 +34,10 @@ const chargeSchema = z.object({
 // GET /api/charges - List all charges for the organization
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     // Get query params for filtering
@@ -64,7 +55,7 @@ export async function GET(request: Request) {
       lease: {
         unit: {
           property: {
-            organizationId: user.organizationId,
+            organizationId: organizationId,
           },
         },
       },
@@ -184,19 +175,10 @@ export async function GET(request: Request) {
 // POST /api/charges - Create a new charge
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     // Parse and validate request body
@@ -218,7 +200,7 @@ export async function POST(request: Request) {
         id: data.leaseId,
         unit: {
           property: {
-            organizationId: user.organizationId,
+            organizationId: organizationId,
           },
         },
       },
@@ -285,8 +267,8 @@ export async function POST(request: Request) {
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        organizationId: user.organizationId,
-        userId: user.id,
+        organizationId: organizationId,
+        userId,
         action: 'CREATE',
         entityType: 'charge',
         entityId: charge.id,

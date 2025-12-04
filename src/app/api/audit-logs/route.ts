@@ -5,19 +5,10 @@ import { prisma } from '@/lib/prisma'
 // GET /api/audit-logs - List audit logs for the organization
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     // Get query params for filtering
@@ -34,7 +25,7 @@ export async function GET(request: Request) {
 
     // Build filter
     const where: Record<string, unknown> = {
-      organizationId: user.organizationId,
+      organizationId,
     }
 
     if (action) {
@@ -95,13 +86,13 @@ export async function GET(request: Request) {
     // Get summary stats
     const actionCounts = await prisma.auditLog.groupBy({
       by: ['action'],
-      where: { organizationId: user.organizationId },
+      where: { organizationId },
       _count: { action: true },
     })
 
     const entityTypeCounts = await prisma.auditLog.groupBy({
       by: ['entityType'],
-      where: { organizationId: user.organizationId },
+      where: { organizationId },
       _count: { entityType: true },
     })
 

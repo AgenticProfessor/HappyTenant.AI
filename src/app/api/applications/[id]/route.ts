@@ -28,21 +28,13 @@ type RouteParams = {
 // GET /api/applications/[id] - Get a single application with full details
 export async function GET(request: Request, { params }: RouteParams) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
     const { id } = await params
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
 
     // Try to find application by organization (either through unit or direct organizationId)
     const application = await prisma.application.findFirst({
@@ -50,7 +42,7 @@ export async function GET(request: Request, { params }: RouteParams) {
         id,
         unit: {
           property: {
-            organizationId: user.organizationId,
+            organizationId: organizationId,
           },
         },
       },
@@ -92,21 +84,13 @@ export async function GET(request: Request, { params }: RouteParams) {
 // PATCH /api/applications/[id] - Update an application (status, notes, etc.)
 export async function PATCH(request: Request, { params }: RouteParams) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
     const { id } = await params
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
 
     // Check if application exists and belongs to user's organization
     const existingApplication = await prisma.application.findFirst({
@@ -114,7 +98,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         id,
         unit: {
           property: {
-            organizationId: user.organizationId,
+            organizationId: organizationId,
           },
         },
       },
@@ -153,7 +137,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
             status: data.status,
             ...(data.status === 'APPROVED' || data.status === 'DECLINED' ? {
               decidedAt: new Date(),
-              decidedByUserId: user.id,
+              decidedByUserId: userId,
             } : {}),
           }),
           ...(data.notes !== undefined && { notes: data.notes }),
@@ -179,7 +163,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
             applicationId: id,
             fromStatus: existingApplication.status,
             toStatus: data.status,
-            changedByUserId: user.id,
+            changedByUserId: userId,
             reason: data.statusReason || data.decisionReason || null,
           },
         })
@@ -213,7 +197,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
           // Check if tenant already exists for this email
           let tenant = await tx.tenant.findFirst({
             where: {
-              organizationId: user.organizationId,
+              organizationId: organizationId,
               email: existingApplication.email,
             },
           })
@@ -222,7 +206,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
             // Create new tenant from application data
             tenant = await tx.tenant.create({
               data: {
-                organizationId: user.organizationId,
+                organizationId: organizationId,
                 firstName: existingApplication.firstName,
                 lastName: existingApplication.lastName,
                 email: existingApplication.email,
@@ -255,8 +239,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        organizationId: user.organizationId,
-        userId: user.id,
+        organizationId: organizationId,
+        userId,
         action: 'UPDATE',
         entityType: 'application',
         entityId: application.id,
@@ -279,21 +263,13 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 // DELETE /api/applications/[id] - Delete an application (only if not processed)
 export async function DELETE(request: Request, { params }: RouteParams) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
     const { id } = await params
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
 
     // Check if application exists and belongs to user's organization
     const existingApplication = await prisma.application.findFirst({
@@ -301,7 +277,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
         id,
         unit: {
           property: {
-            organizationId: user.organizationId,
+            organizationId: organizationId,
           },
         },
       },
@@ -353,8 +329,8 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        organizationId: user.organizationId,
-        userId: user.id,
+        organizationId: organizationId,
+        userId,
         action: 'DELETE',
         entityType: 'application',
         entityId: id,

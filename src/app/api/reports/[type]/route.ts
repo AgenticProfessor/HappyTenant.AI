@@ -23,9 +23,9 @@ export async function GET(
   { params }: { params: Promise<{ type: string }> }
 ) {
   try {
-    const { userId } = await auth();
+    const { userId, organizationId } = await auth();
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -36,15 +36,6 @@ export async function GET(
     const definition = getReportDefinition(reportType);
     if (!definition) {
       return NextResponse.json({ error: 'Invalid report type' }, { status: 400 });
-    }
-
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // Parse query params
@@ -60,8 +51,6 @@ export async function GET(
       groupBy: (searchParams.get('groupBy') || 'none') as ReportFilters['groupBy'],
       propertyId: searchParams.get('propertyId') || undefined,
     };
-
-    const organizationId = user.organizationId;
 
     // Generate the report based on type
     let report: ReportData;

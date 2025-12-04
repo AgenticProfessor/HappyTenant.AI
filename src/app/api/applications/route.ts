@@ -111,19 +111,10 @@ const applicationSchema = z.object({
 // GET /api/applications - List all applications for the organization
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     // Get query params for filtering
@@ -137,7 +128,7 @@ export async function GET(request: Request) {
     const where: Record<string, unknown> = {
       unit: {
         property: {
-          organizationId: user.organizationId,
+          organizationId: organizationId,
         },
       },
     }
@@ -208,7 +199,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     // Check if this is an authenticated user or public submission
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
 
     // Parse and validate request body
     const body = await request.json()
@@ -316,24 +307,18 @@ export async function POST(request: Request) {
     }
 
     // Create audit log if authenticated
-    if (userId) {
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
+    if (userId && organizationId) {
+      await prisma.auditLog.create({
+        data: {
+          organizationId,
+          userId,
+          action: 'CREATE',
+          entityType: 'application',
+          entityId: application.id,
+          description: `Application submitted for unit ${unit.unitNumber} at ${unit.property.name}`,
+          newValues: JSON.parse(JSON.stringify(application)),
+        },
       })
-
-      if (user) {
-        await prisma.auditLog.create({
-          data: {
-            organizationId: user.organizationId,
-            userId: user.id,
-            action: 'CREATE',
-            entityType: 'application',
-            entityId: application.id,
-            description: `Application submitted for unit ${unit.unitNumber} at ${unit.property.name}`,
-            newValues: JSON.parse(JSON.stringify(application)),
-          },
-        })
-      }
     }
 
     return NextResponse.json({ application }, { status: 201 })

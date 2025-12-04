@@ -15,20 +15,13 @@ type RouteParams = {
 // GET /api/applications/[id]/notes - Get all notes for an application
 export async function GET(request: Request, { params }: RouteParams) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
     const { id } = await params
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
 
     // Verify application belongs to user's organization
     const application = await prisma.application.findFirst({
@@ -36,7 +29,7 @@ export async function GET(request: Request, { params }: RouteParams) {
         id,
         unit: {
           property: {
-            organizationId: user.organizationId,
+            organizationId: organizationId,
           },
         },
       },
@@ -61,20 +54,13 @@ export async function GET(request: Request, { params }: RouteParams) {
 // POST /api/applications/[id]/notes - Add a note to an application
 export async function POST(request: Request, { params }: RouteParams) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
     const { id } = await params
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
 
     // Verify application belongs to user's organization
     const application = await prisma.application.findFirst({
@@ -82,7 +68,7 @@ export async function POST(request: Request, { params }: RouteParams) {
         id,
         unit: {
           property: {
-            organizationId: user.organizationId,
+            organizationId: organizationId,
           },
         },
       },
@@ -109,7 +95,7 @@ export async function POST(request: Request, { params }: RouteParams) {
         applicationId: id,
         content,
         isInternal,
-        userId: user.id,
+        userId,
       },
     })
 

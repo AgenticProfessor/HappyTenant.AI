@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 import { createDocumentSchema } from '@/lib/schemas/esign';
-
-// Mock user ID for development
-const MOCK_USER_ID = 'mock-user-id';
-const MOCK_ORG_ID = 'mock-org-id';
+import { ESignDocumentStatus, Prisma } from '@prisma/client';
 
 /**
  * GET /api/esign
@@ -11,70 +10,119 @@ const MOCK_ORG_ID = 'mock-org-id';
  */
 export async function GET(request: NextRequest) {
   try {
+    const { userId, organizationId } = await auth();
+
+    if (!userId || !organizationId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams;
-    const status = searchParams.get('status');
-    const propertyId = searchParams.get('propertyId');
+    const status = searchParams.get('status') as ESignDocumentStatus | null;
+    const leaseId = searchParams.get('leaseId');
+    const applicationId = searchParams.get('applicationId');
     const page = parseInt(searchParams.get('page') || '1');
     const pageSize = parseInt(searchParams.get('pageSize') || '20');
 
-    // TODO: Replace with actual database query when Prisma schema is updated
-    // For now, return mock data
-    const mockDocuments = [
-      {
-        id: 'doc-1',
-        name: 'Lease Agreement - Unit 3B',
-        status: 'COMPLETED',
-        createdAt: '2024-11-15T00:00:00Z',
-        completedAt: '2024-11-18T00:00:00Z',
-        signerCount: 2,
-        signedCount: 2,
-        property: {
-          id: 'prop-1',
-          name: 'Sunset Apartments',
-        },
-      },
-      {
-        id: 'doc-2',
-        name: 'Pet Addendum - Unit 12',
-        status: 'PENDING_SIGNATURES',
-        createdAt: '2024-11-20T00:00:00Z',
-        signerCount: 2,
-        signedCount: 1,
-        property: {
-          id: 'prop-2',
-          name: 'Oak Grove Homes',
-        },
-      },
-      {
-        id: 'doc-3',
-        name: 'Move-Out Inspection',
-        status: 'DRAFT',
-        createdAt: '2024-11-22T00:00:00Z',
-        signerCount: 0,
-        signedCount: 0,
-        property: {
-          id: 'prop-1',
-          name: 'Sunset Apartments',
-        },
-      },
-    ];
+    // Build where clause
+    const where: Prisma.ESignDocumentWhereInput = { organizationId };
 
-    // Filter by status if provided
-    let filtered = mockDocuments;
-    if (status) {
-      filtered = filtered.filter((d) => d.status === status);
+    if (status && Object.values(ESignDocumentStatus).includes(status)) {
+      where.status = status;
     }
-    if (propertyId) {
-      filtered = filtered.filter((d) => d.property.id === propertyId);
+    if (leaseId) {
+      where.leaseId = leaseId;
     }
+    if (applicationId) {
+      where.applicationId = applicationId;
+    }
+
+    // Fetch documents with signers count
+    const [documents, total] = await Promise.all([
+      prisma.eSignDocument.findMany({
+        where,
+        include: {
+          signers: {
+            select: {
+              id: true,
+              status: true,
+            },
+          },
+          lease: {
+            select: {
+              id: true,
+              unit: {
+                select: {
+                  unitNumber: true,
+                  property: {
+                    select: {
+                      id: true,
+                      name: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          application: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              unit: {
+                select: {
+                  unitNumber: true,
+                  property: {
+                    select: {
+                      id: true,
+                      name: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          createdBy: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      prisma.eSignDocument.count({ where }),
+    ]);
+
+    // Transform documents for response
+    const formattedDocuments = documents.map((doc) => ({
+      id: doc.id,
+      name: doc.name,
+      description: doc.description,
+      status: doc.status,
+      createdAt: doc.createdAt,
+      completedAt: doc.completedAt,
+      expiresAt: doc.expiresAt,
+      signerCount: doc.signers.length,
+      signedCount: doc.signers.filter((s) => s.status === 'SIGNED').length,
+      property: doc.lease?.unit?.property || doc.application?.unit?.property || null,
+      lease: doc.lease,
+      application: doc.application,
+      createdBy: doc.createdBy,
+    }));
 
     return NextResponse.json({
-      documents: filtered,
-      total: filtered.length,
+      documents: formattedDocuments,
+      total,
       page,
       pageSize,
-      hasMore: false,
+      hasMore: page * pageSize < total,
     });
   } catch (error) {
     console.error('Error fetching E-Sign documents:', error);
@@ -91,6 +139,15 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const { userId, organizationId } = await auth();
+
+    if (!userId || !organizationId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
 
     // Validate request body
@@ -104,23 +161,53 @@ export async function POST(request: NextRequest) {
 
     const data = validationResult.data;
 
-    // TODO: Create document in database
-    // For now, return mock response
-    const newDocument = {
-      id: `doc-${Date.now()}`,
-      organizationId: MOCK_ORG_ID,
-      name: data.name,
-      description: data.description,
-      status: 'DRAFT',
-      createdAt: new Date().toISOString(),
-      createdById: MOCK_USER_ID,
-      propertyId: data.propertyId,
-      leaseId: data.leaseId,
-      message: data.message,
-      reminderEnabled: data.reminderEnabled,
-      reminderDays: data.reminderDays,
-      expiresAt: data.expiresAt,
-    };
+    // Create the document
+    const newDocument = await prisma.eSignDocument.create({
+      data: {
+        organizationId,
+        name: data.name,
+        description: data.description,
+        originalFileUrl: data.fileUrl || '',
+        originalFileName: data.fileName || 'document.pdf',
+        fileSize: data.fileSize || 0,
+        mimeType: data.mimeType || 'application/pdf',
+        leaseId: data.leaseId,
+        applicationId: data.applicationId,
+        expiresAt: data.expiresAt ? new Date(data.expiresAt) : null,
+        createdById: userId,
+        status: 'DRAFT',
+      },
+      include: {
+        signers: true,
+        fields: true,
+        lease: {
+          select: {
+            id: true,
+            unit: {
+              select: {
+                unitNumber: true,
+                property: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Create audit log entry
+    await prisma.eSignAuditLog.create({
+      data: {
+        documentId: newDocument.id,
+        action: 'DOCUMENT_CREATED',
+        actorType: 'USER',
+        actorId: userId,
+      },
+    });
 
     return NextResponse.json(newDocument, { status: 201 });
   } catch (error) {

@@ -247,10 +247,17 @@ export const createDocumentSchema = z.object({
   description: z.string().max(1000).optional(),
   propertyId: z.string().optional(),
   leaseId: z.string().optional(),
+  applicationId: z.string().optional(),
   message: z.string().max(2000).optional(),
   expiresAt: z.coerce.date().optional(),
   reminderEnabled: z.boolean().default(true),
   reminderDays: z.number().int().min(1).max(30).default(3),
+  // File information (required for document creation)
+  fileUrl: z.string().url().optional(),
+  fileName: z.string().max(255).optional(),
+  fileSize: z.number().int().min(0).optional(),
+  mimeType: z.string().max(100).optional(),
+  pageCount: z.number().int().min(1).optional(),
 });
 
 export const addSignerSchema = z.object({

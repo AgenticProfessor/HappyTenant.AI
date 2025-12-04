@@ -18,25 +18,17 @@ const exportSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth();
+    const { userId, organizationId } = await auth();
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     const body = await request.json();
     const { reportType, filters } = exportSchema.parse(body);
 
     // Generate PDF content (returns HTML for browser print)
-    const pdfContent = await generatePDFReport(prisma, user.organizationId, reportType, filters as unknown as import('@/lib/reports/types').ReportFilters);
+    const pdfContent = await generatePDFReport(prisma, organizationId, reportType, filters as unknown as import('@/lib/reports/types').ReportFilters);
 
     // Return as HTML that can be printed to PDF by the browser
     const filename = `${reportType}-${filters.startDate}-to-${filters.endDate}.html`;

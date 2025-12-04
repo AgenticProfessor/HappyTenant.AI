@@ -55,6 +55,19 @@ export const queryKeys = {
   leases: ['leases'] as const,
   lease: (id: string) => ['leases', id] as const,
   leaseByTenant: (tenantId: string) => ['leases', 'tenant', tenantId] as const,
+  leaseByUnit: (unitId: string) => ['leases', 'unit', unitId] as const,
+
+  // Vendors
+  vendors: ['vendors'] as const,
+  vendor: (id: string) => ['vendors', id] as const,
+
+  // Charges
+  charges: ['charges'] as const,
+  charge: (id: string) => ['charges', id] as const,
+
+  // Payments
+  payments: ['payments'] as const,
+  payment: (id: string) => ['payments', id] as const,
 
   // Transactions
   transactions: ['transactions'] as const,
@@ -64,6 +77,7 @@ export const queryKeys = {
   maintenanceRequests: ['maintenance-requests'] as const,
   maintenanceRequest: (id: string) => ['maintenance-requests', id] as const,
   maintenanceByUnit: (unitId: string) => ['maintenance-requests', 'unit', unitId] as const,
+  maintenanceByProperty: (propertyId: string) => ['maintenance-requests', 'property', propertyId] as const,
 
   // Messages
   conversations: ['conversations'] as const,
@@ -74,7 +88,12 @@ export const queryKeys = {
   documents: ['documents'] as const,
   document: (id: string) => ['documents', id] as const,
 
+  // Applications
+  applications: ['applications'] as const,
+  application: (id: string) => ['applications', id] as const,
+
   // Dashboard
+  dashboard: ['dashboard'] as const,
   dashboardStats: ['dashboard', 'stats'] as const,
   aiInsights: ['dashboard', 'ai-insights'] as const,
 };

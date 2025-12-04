@@ -9,10 +9,10 @@ type RouteParams = {
 // GET /api/messages/[id] - Get a single message
 export async function GET(request: Request, { params }: RouteParams) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
     const { id } = await params
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -76,10 +76,10 @@ export async function GET(request: Request, { params }: RouteParams) {
 // PATCH /api/messages/[id] - Update message (mark as read/unread)
 export async function PATCH(request: Request, { params }: RouteParams) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
     const { id } = await params
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -137,20 +137,11 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 // DELETE /api/messages/[id] - Delete a message
 export async function DELETE(request: Request, { params }: RouteParams) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
     const { id } = await params
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     // Only sender can delete their own messages

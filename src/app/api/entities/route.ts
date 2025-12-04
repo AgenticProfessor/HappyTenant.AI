@@ -6,18 +6,10 @@ import { CreateEntitySchema, EntityFiltersSchema } from '@/lib/schemas/entity';
 // GET /api/entities - List all entities for the organization
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth();
+    const { userId, organizationId } = await auth();
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // Parse query params
@@ -43,7 +35,7 @@ export async function GET(request: Request) {
 
     // Build where clause
     const where: Record<string, unknown> = {
-      organizationId: user.organizationId,
+      organizationId,
     };
 
     if (filters.entityType) {
@@ -121,18 +113,10 @@ export async function GET(request: Request) {
 // POST /api/entities - Create a new entity
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth();
+    const { userId, organizationId } = await auth();
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // Parse and validate request body
@@ -153,7 +137,7 @@ export async function POST(request: Request) {
       const parentEntity = await prisma.businessEntity.findFirst({
         where: {
           id: data.parentEntityId,
-          organizationId: user.organizationId,
+          organizationId,
         },
       });
 
@@ -177,7 +161,7 @@ export async function POST(request: Request) {
     if (data.isDefault) {
       await prisma.businessEntity.updateMany({
         where: {
-          organizationId: user.organizationId,
+          organizationId,
           isDefault: true,
         },
         data: { isDefault: false },
@@ -187,7 +171,7 @@ export async function POST(request: Request) {
     // Create entity
     const entity = await prisma.businessEntity.create({
       data: {
-        organizationId: user.organizationId,
+        organizationId,
         name: data.name,
         legalName: data.legalName,
         entityType: data.entityType,
@@ -230,8 +214,8 @@ export async function POST(request: Request) {
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        organizationId: user.organizationId,
-        userId: user.id,
+        organizationId,
+        userId,
         action: 'CREATE',
         entityType: 'business_entity',
         entityId: entity.id,

@@ -27,20 +27,10 @@ const propertySchema = z.object({
 // GET /api/properties - List all properties for the organization
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: { organization: true },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     // Get query params for filtering
@@ -51,7 +41,7 @@ export async function GET(request: Request) {
 
     // Build filter
     const where: Record<string, unknown> = {
-      organizationId: user.organizationId,
+      organizationId,
     }
 
     if (status) {
@@ -105,20 +95,10 @@ export async function GET(request: Request) {
 // POST /api/properties - Create a new property
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: { organization: true },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     // Parse and validate request body
@@ -137,7 +117,7 @@ export async function POST(request: Request) {
     // Create property
     const property = await prisma.property.create({
       data: {
-        organizationId: user.organizationId,
+        organizationId,
         name: data.name,
         type: data.type,
         addressLine1: data.addressLine1,
@@ -170,8 +150,8 @@ export async function POST(request: Request) {
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        organizationId: user.organizationId,
-        userId: user.id,
+        organizationId,
+        userId,
         action: 'CREATE',
         entityType: 'property',
         entityId: property.id,

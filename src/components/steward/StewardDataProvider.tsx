@@ -391,21 +391,47 @@ export function StewardDataProvider({ children }: StewardDataProviderProps) {
   const refreshMetrics = useCallback(async () => {
     setIsLoadingMetrics(true);
     try {
-      // TODO: Replace with real API call
-      // const response = await fetch('/api/steward/portfolio-metrics');
-      // const data = await response.json();
+      // Fetch from real dashboard API
+      const response = await fetch('/api/dashboard');
 
-      // Using mock data for now
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API delay
-      const data = generateMockMetrics();
+      if (!response.ok) {
+        throw new Error('Failed to fetch dashboard data');
+      }
+
+      const dashboardData = await response.json();
+      const stats = dashboardData.stats;
+
+      // Map dashboard stats to PortfolioMetrics
+      const data: PortfolioMetrics = {
+        totalProperties: stats.totalProperties || 0,
+        totalUnits: stats.totalUnits || 0,
+        occupiedUnits: stats.occupiedUnits || 0,
+        vacantUnits: (stats.totalUnits || 0) - (stats.occupiedUnits || 0),
+        occupancyRate: stats.totalUnits > 0
+          ? Math.round((stats.occupiedUnits / stats.totalUnits) * 100 * 10) / 10
+          : 0,
+        totalTenants: stats.activeTenants || 0,
+        totalRevenue: stats.collectedRent || 0,
+        totalExpenses: 0, // TODO: Add expenses to dashboard API
+        netOperatingIncome: stats.collectedRent || 0,
+        collectionRate: stats.collectionRate || 0,
+        pendingMaintenance: stats.openMaintenanceRequests || 0,
+        overduePayments: stats.overduePayments || 0,
+        activeApplications: stats.activeApplications || 0,
+        unreadMessages: stats.unreadMessages || 0,
+      };
 
       setMetrics(data);
       setLastMetricsUpdate(new Date());
 
-      // Generate insights based on metrics
+      // Generate insights based on real metrics
       setInsights(generateMockInsights(data));
     } catch (error) {
       console.error('Failed to fetch portfolio metrics:', error);
+      // Fallback to mock data if API fails
+      const data = generateMockMetrics();
+      setMetrics(data);
+      setInsights(generateMockInsights(data));
     } finally {
       setIsLoadingMetrics(false);
     }

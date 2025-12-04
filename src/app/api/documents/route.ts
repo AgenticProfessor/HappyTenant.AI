@@ -43,20 +43,12 @@ const documentSchema = z.object({
 // GET /api/documents - List documents for the organization
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
 
     // Get query params for filtering
     const { searchParams } = new URL(request.url)
@@ -72,33 +64,33 @@ export async function GET(request: Request) {
       OR: [
         {
           property: {
-            organizationId: user.organizationId,
+            organizationId: organizationId,
           },
         },
         {
           unit: {
             property: {
-              organizationId: user.organizationId,
+              organizationId: organizationId,
             },
           },
         },
         {
           tenant: {
-            organizationId: user.organizationId,
+            organizationId: organizationId,
           },
         },
         {
           lease: {
             unit: {
               property: {
-                organizationId: user.organizationId,
+                organizationId: organizationId,
               },
             },
           },
         },
         {
           vendor: {
-            organizationId: user.organizationId,
+            organizationId: organizationId,
           },
         },
       ],
@@ -206,20 +198,12 @@ export async function GET(request: Request) {
 // POST /api/documents - Create a document record (after file upload)
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
 
     // Parse and validate request body
     const body = await request.json()
@@ -246,7 +230,7 @@ export async function POST(request: Request) {
     // Verify associations belong to organization
     if (data.propertyId) {
       const property = await prisma.property.findFirst({
-        where: { id: data.propertyId, organizationId: user.organizationId },
+        where: { id: data.propertyId, organizationId: organizationId },
       })
       if (!property) {
         return NextResponse.json({ error: 'Property not found' }, { status: 404 })
@@ -255,7 +239,7 @@ export async function POST(request: Request) {
 
     if (data.tenantId) {
       const tenant = await prisma.tenant.findFirst({
-        where: { id: data.tenantId, organizationId: user.organizationId },
+        where: { id: data.tenantId, organizationId: organizationId },
       })
       if (!tenant) {
         return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
@@ -265,7 +249,7 @@ export async function POST(request: Request) {
     // Create document record
     const document = await prisma.document.create({
       data: {
-        organizationId: user.organizationId,
+        organizationId: organizationId,
         name: data.name,
         fileName: data.name, // Using name as filename for simplicity
         type: data.type,
@@ -304,8 +288,8 @@ export async function POST(request: Request) {
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        organizationId: user.organizationId,
-        userId: user.id,
+        organizationId: organizationId,
+        userId,
         action: 'CREATE',
         entityType: 'document',
         entityId: document.id,

@@ -8,7 +8,7 @@ async function main() {
 
     // 1. Get or Create User and Organization
     let user = await prisma.user.findFirst({
-        include: { organization: true },
+        include: { Organization: true },
     });
 
     if (!user) {

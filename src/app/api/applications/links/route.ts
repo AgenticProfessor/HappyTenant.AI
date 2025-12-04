@@ -7,19 +7,12 @@ import { createApplicationLinkSchema } from '@/lib/schemas/application'
 // GET /api/applications/links - List all application links for the organization
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
 
     // Get query params for filtering
     const { searchParams } = new URL(request.url)
@@ -27,7 +20,7 @@ export async function GET(request: Request) {
     const isActive = searchParams.get('isActive')
 
     const where: Record<string, unknown> = {
-      organizationId: user.organizationId,
+      organizationId: organizationId,
     }
 
     if (unitId) {
@@ -76,19 +69,12 @@ export async function GET(request: Request) {
 // POST /api/applications/links - Create a new application link
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
 
     const body = await request.json()
     const validationResult = createApplicationLinkSchema.safeParse(body)
@@ -108,7 +94,7 @@ export async function POST(request: Request) {
         where: {
           id: data.unitId,
           property: {
-            organizationId: user.organizationId,
+            organizationId: organizationId,
           },
         },
       })
@@ -126,7 +112,7 @@ export async function POST(request: Request) {
 
     const link = await prisma.applicationLink.create({
       data: {
-        organizationId: user.organizationId,
+        organizationId: organizationId,
         token,
         name: data.name,
         unitId: data.unitId,
@@ -157,8 +143,8 @@ export async function POST(request: Request) {
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        organizationId: user.organizationId,
-        userId: user.id,
+        organizationId: organizationId,
+        userId,
         action: 'CREATE',
         entityType: 'application_link',
         entityId: link.id,

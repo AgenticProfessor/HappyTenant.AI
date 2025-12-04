@@ -43,19 +43,10 @@ const tenantSchema = z.object({
 // GET /api/tenants - List all tenants for the organization
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     // Get query params for filtering
@@ -66,7 +57,7 @@ export async function GET(request: Request) {
 
     // Build filter
     const where: Record<string, unknown> = {
-      organizationId: user.organizationId,
+      organizationId,
     }
 
     if (status === 'active') {
@@ -134,19 +125,10 @@ export async function GET(request: Request) {
 // POST /api/tenants - Create a new tenant
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     // Parse and validate request body
@@ -165,7 +147,7 @@ export async function POST(request: Request) {
     // Create tenant
     const tenant = await prisma.tenant.create({
       data: {
-        organizationId: user.organizationId,
+        organizationId,
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
@@ -195,8 +177,8 @@ export async function POST(request: Request) {
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        organizationId: user.organizationId,
-        userId: user.id,
+        organizationId,
+        userId,
         action: 'CREATE',
         entityType: 'tenant',
         entityId: tenant.id,

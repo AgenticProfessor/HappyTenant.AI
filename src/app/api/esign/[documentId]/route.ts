@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { ESignDocumentStatus } from '@prisma/client';
 
 /**
  * GET /api/esign/[documentId]
@@ -9,104 +12,104 @@ export async function GET(
   { params }: { params: Promise<{ documentId: string }> }
 ) {
   try {
+    const { userId, organizationId } = await auth();
+
+    if (!userId || !organizationId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const { documentId } = await params;
 
-    // TODO: Fetch from database
-    // For now, return mock data
-    const mockDocument = {
-      id: documentId,
-      name: 'Lease Agreement - Unit 3B',
-      description: 'Annual lease agreement for residential property',
-      status: 'PENDING_SIGNATURES',
-      originalFileName: 'lease-agreement.pdf',
-      originalFileUrl: '/uploads/lease-agreement.pdf',
-      fileSize: 245000,
-      mimeType: 'application/pdf',
-      pageCount: 8,
-      createdAt: '2024-11-15T00:00:00Z',
-      sentAt: '2024-11-16T00:00:00Z',
-      message: 'Please review and sign the lease agreement.',
-      reminderEnabled: true,
-      reminderDays: 3,
-      property: {
-        id: 'prop-1',
-        name: 'Sunset Apartments',
-        address: '123 Main St',
+    const document = await prisma.eSignDocument.findFirst({
+      where: {
+        id: documentId,
+        organizationId,
       },
-      signers: [
-        {
-          id: 'signer-1',
-          name: 'Sarah Johnson',
-          email: 'sarah@example.com',
-          role: 'TENANT',
-          status: 'SIGNED',
-          signedAt: '2024-11-17T00:00:00Z',
-          color: '#3B82F6',
-          order: 1,
+      include: {
+        signers: {
+          orderBy: { order: 'asc' },
         },
-        {
-          id: 'signer-2',
-          name: 'John Smith',
-          email: 'john@example.com',
-          role: 'LANDLORD',
-          status: 'PENDING',
-          color: '#F97316',
-          order: 2,
+        fields: {
+          include: {
+            signer: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
         },
-      ],
-      fields: [
-        {
-          id: 'field-1',
-          signerId: 'signer-1',
-          type: 'SIGNATURE',
-          pageNumber: 8,
-          x: 10,
-          y: 70,
-          width: 20,
-          height: 6,
-          required: true,
-          value: 'signed',
-          signedAt: '2024-11-17T00:00:00Z',
+        lease: {
+          select: {
+            id: true,
+            rentAmount: true,
+            startDate: true,
+            endDate: true,
+            unit: {
+              select: {
+                id: true,
+                unitNumber: true,
+                property: {
+                  select: {
+                    id: true,
+                    name: true,
+                    addressLine1: true,
+                    city: true,
+                    state: true,
+                  },
+                },
+              },
+            },
+          },
         },
-        {
-          id: 'field-2',
-          signerId: 'signer-1',
-          type: 'DATE',
-          pageNumber: 8,
-          x: 35,
-          y: 70,
-          width: 15,
-          height: 4,
-          required: true,
-          value: '2024-11-17',
-          signedAt: '2024-11-17T00:00:00Z',
+        application: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            unit: {
+              select: {
+                id: true,
+                unitNumber: true,
+                property: {
+                  select: {
+                    id: true,
+                    name: true,
+                    addressLine1: true,
+                  },
+                },
+              },
+            },
+          },
         },
-        {
-          id: 'field-3',
-          signerId: 'signer-2',
-          type: 'SIGNATURE',
-          pageNumber: 8,
-          x: 55,
-          y: 70,
-          width: 20,
-          height: 6,
-          required: true,
+        createdBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
         },
-        {
-          id: 'field-4',
-          signerId: 'signer-2',
-          type: 'DATE',
-          pageNumber: 8,
-          x: 80,
-          y: 70,
-          width: 15,
-          height: 4,
-          required: true,
+        auditLogs: {
+          orderBy: { createdAt: 'desc' },
+          take: 20,
         },
-      ],
-    };
+      },
+    });
 
-    return NextResponse.json(mockDocument);
+    if (!document) {
+      return NextResponse.json(
+        { error: 'Document not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(document);
   } catch (error) {
     console.error('Error fetching E-Sign document:', error);
     return NextResponse.json(
@@ -125,16 +128,95 @@ export async function PATCH(
   { params }: { params: Promise<{ documentId: string }> }
 ) {
   try {
+    const { userId, organizationId } = await auth();
+
+    if (!userId || !organizationId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const { documentId } = await params;
     const body = await request.json();
 
-    // TODO: Update in database
-    // For now, return success
-    return NextResponse.json({
-      id: documentId,
-      ...body,
-      updatedAt: new Date().toISOString(),
+    // Verify document exists and belongs to organization
+    const existingDocument = await prisma.eSignDocument.findFirst({
+      where: {
+        id: documentId,
+        organizationId,
+      },
     });
+
+    if (!existingDocument) {
+      return NextResponse.json(
+        { error: 'Document not found' },
+        { status: 404 }
+      );
+    }
+
+    // Only allow updates to documents in DRAFT status
+    if (existingDocument.status !== 'DRAFT' && body.status === undefined) {
+      return NextResponse.json(
+        { error: 'Cannot update a document that has already been sent' },
+        { status: 400 }
+      );
+    }
+
+    // Build update data
+    const updateData: {
+      title?: string;
+      description?: string;
+      fileUrl?: string;
+      fileName?: string;
+      fileSize?: number;
+      mimeType?: string;
+      expiresAt?: Date | null;
+      status?: ESignDocumentStatus;
+      completedAt?: Date | null;
+      completedDocumentUrl?: string | null;
+    } = {};
+
+    if (body.title !== undefined) updateData.title = body.title;
+    if (body.description !== undefined) updateData.description = body.description;
+    if (body.fileUrl !== undefined) updateData.fileUrl = body.fileUrl;
+    if (body.fileName !== undefined) updateData.fileName = body.fileName;
+    if (body.fileSize !== undefined) updateData.fileSize = body.fileSize;
+    if (body.mimeType !== undefined) updateData.mimeType = body.mimeType;
+    if (body.expiresAt !== undefined) {
+      updateData.expiresAt = body.expiresAt ? new Date(body.expiresAt) : null;
+    }
+    if (body.status !== undefined && Object.values(ESignDocumentStatus).includes(body.status)) {
+      updateData.status = body.status as ESignDocumentStatus;
+    }
+    if (body.completedAt !== undefined) {
+      updateData.completedAt = body.completedAt ? new Date(body.completedAt) : null;
+    }
+    if (body.completedDocumentUrl !== undefined) {
+      updateData.completedDocumentUrl = body.completedDocumentUrl;
+    }
+
+    const updatedDocument = await prisma.eSignDocument.update({
+      where: { id: documentId },
+      data: updateData,
+      include: {
+        signers: true,
+        fields: true,
+      },
+    });
+
+    // Create audit log entry
+    await prisma.eSignAuditLog.create({
+      data: {
+        documentId,
+        action: 'DOCUMENT_UPDATED',
+        actorType: 'USER',
+        actorId: userId,
+        metadata: { changes: Object.keys(updateData) },
+      },
+    });
+
+    return NextResponse.json(updatedDocument);
   } catch (error) {
     console.error('Error updating E-Sign document:', error);
     return NextResponse.json(
@@ -153,10 +235,45 @@ export async function DELETE(
   { params }: { params: Promise<{ documentId: string }> }
 ) {
   try {
+    const { userId, organizationId } = await auth();
+
+    if (!userId || !organizationId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const { documentId } = await params;
 
-    // TODO: Delete from database
-    // For now, return success
+    // Verify document exists and belongs to organization
+    const existingDocument = await prisma.eSignDocument.findFirst({
+      where: {
+        id: documentId,
+        organizationId,
+      },
+    });
+
+    if (!existingDocument) {
+      return NextResponse.json(
+        { error: 'Document not found' },
+        { status: 404 }
+      );
+    }
+
+    // Only allow deletion of DRAFT or CANCELLED documents
+    if (!['DRAFT', 'CANCELLED'].includes(existingDocument.status)) {
+      return NextResponse.json(
+        { error: 'Cannot delete a document that has been sent for signatures' },
+        { status: 400 }
+      );
+    }
+
+    // Delete the document (cascade will handle signers, fields, audit log)
+    await prisma.eSignDocument.delete({
+      where: { id: documentId },
+    });
+
     return NextResponse.json({ success: true, deletedId: documentId });
   } catch (error) {
     console.error('Error deleting E-Sign document:', error);

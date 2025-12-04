@@ -10,25 +10,17 @@ type RouteParams = {
 // GET /api/entities/[id] - Get a single entity
 export async function GET(request: Request, { params }: RouteParams) {
   try {
-    const { userId } = await auth();
+    const { userId, organizationId } = await auth();
     const { id } = await params;
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     const entity = await prisma.businessEntity.findFirst({
       where: {
         id,
-        organizationId: user.organizationId,
+        organizationId,
       },
       include: {
         parentEntity: {
@@ -108,26 +100,18 @@ export async function GET(request: Request, { params }: RouteParams) {
 // PATCH /api/entities/[id] - Update an entity
 export async function PATCH(request: Request, { params }: RouteParams) {
   try {
-    const { userId } = await auth();
+    const { userId, organizationId } = await auth();
     const { id } = await params;
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // Check if entity exists and belongs to user's organization
     const existingEntity = await prisma.businessEntity.findFirst({
       where: {
         id,
-        organizationId: user.organizationId,
+        organizationId,
       },
     });
 
@@ -162,7 +146,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         const parentEntity = await prisma.businessEntity.findFirst({
           where: {
             id: data.parentEntityId,
-            organizationId: user.organizationId,
+            organizationId,
           },
         });
 
@@ -186,7 +170,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     if (data.isDefault && !existingEntity.isDefault) {
       await prisma.businessEntity.updateMany({
         where: {
-          organizationId: user.organizationId,
+          organizationId,
           isDefault: true,
         },
         data: { isDefault: false },
@@ -242,8 +226,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        organizationId: user.organizationId,
-        userId: user.id,
+        organizationId,
+        userId,
         action: 'UPDATE',
         entityType: 'business_entity',
         entityId: entity.id,
@@ -266,26 +250,18 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 // DELETE /api/entities/[id] - Delete an entity
 export async function DELETE(request: Request, { params }: RouteParams) {
   try {
-    const { userId } = await auth();
+    const { userId, organizationId } = await auth();
     const { id } = await params;
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // Check if entity exists and belongs to user's organization
     const existingEntity = await prisma.businessEntity.findFirst({
       where: {
         id,
-        organizationId: user.organizationId,
+        organizationId,
       },
       include: {
         childEntities: true,
@@ -316,7 +292,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     // Prevent deletion of default entity if it's the only one
     if (existingEntity.isDefault) {
       const entityCount = await prisma.businessEntity.count({
-        where: { organizationId: user.organizationId },
+        where: { organizationId },
       });
 
       if (entityCount === 1) {
@@ -329,7 +305,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       // Set another entity as default
       const anotherEntity = await prisma.businessEntity.findFirst({
         where: {
-          organizationId: user.organizationId,
+          organizationId,
           id: { not: id },
         },
       });
@@ -350,8 +326,8 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        organizationId: user.organizationId,
-        userId: user.id,
+        organizationId,
+        userId,
         action: 'DELETE',
         entityType: 'business_entity',
         entityId: id,

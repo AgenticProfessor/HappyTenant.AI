@@ -9,25 +9,18 @@ export async function GET(
   { params }: { params: Promise<{ linkId: string }> }
 ) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
     const { linkId } = await params
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
 
     const link = await prisma.applicationLink.findFirst({
       where: {
         id: linkId,
-        organizationId: user.organizationId,
+        organizationId: organizationId,
       },
       include: {
         unit: {
@@ -83,26 +76,19 @@ export async function PATCH(
   { params }: { params: Promise<{ linkId: string }> }
 ) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
     const { linkId } = await params
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
 
     // Verify link belongs to organization
     const existingLink = await prisma.applicationLink.findFirst({
       where: {
         id: linkId,
-        organizationId: user.organizationId,
+        organizationId: organizationId,
       },
     })
 
@@ -154,8 +140,8 @@ export async function PATCH(
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        organizationId: user.organizationId,
-        userId: user.id,
+        organizationId: organizationId,
+        userId,
         action: 'UPDATE',
         entityType: 'application_link',
         entityId: link.id,
@@ -181,26 +167,19 @@ export async function DELETE(
   { params }: { params: Promise<{ linkId: string }> }
 ) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
     const { linkId } = await params
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
 
     // Verify link belongs to organization
     const existingLink = await prisma.applicationLink.findFirst({
       where: {
         id: linkId,
-        organizationId: user.organizationId,
+        organizationId: organizationId,
       },
     })
 
@@ -219,8 +198,8 @@ export async function DELETE(
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        organizationId: user.organizationId,
-        userId: user.id,
+        organizationId: organizationId,
+        userId,
         action: 'DELETE',
         entityType: 'application_link',
         entityId: link.id,

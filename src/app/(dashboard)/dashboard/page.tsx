@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Building2,
   Users,
@@ -24,22 +25,15 @@ import {
   Calendar,
   MoreHorizontal,
 } from 'lucide-react';
-import {
-  mockDashboardStats,
-  mockProperties as initialProperties,
-  mockTenants as initialTenants,
-  mockTransactions as initialTransactions,
-  mockMaintenanceRequests,
-  mockAIInsights,
-  mockUnits as initialUnits,
-} from '@/data/mock-data';
+import { mockAIInsights } from '@/data/mock-data';
 import { AddPropertyDialog } from '@/components/dashboard/AddPropertyDialog';
 import { AddTenantDialog } from '@/components/dashboard/AddTenantDialog';
 import { RecordPaymentDialog } from '@/components/dashboard/RecordPaymentDialog';
 import { SendMessageDialog } from '@/components/dashboard/SendMessageDialog';
 import { useStewardContext } from '@/hooks/use-steward-context';
+import { useDashboard } from '@/hooks/use-dashboard';
 
-// Type definitions
+// Type definitions for dialogs
 interface Property {
   id: string;
   organizationId: string;
@@ -98,7 +92,20 @@ interface Message {
 }
 
 export default function DashboardPage() {
-  const stats = mockDashboardStats;
+  const { data, isLoading, error } = useDashboard();
+
+  // Default stats when data is loading
+  const stats = data?.stats ?? {
+    totalRevenue: 0,
+    totalProperties: 0,
+    totalUnits: 0,
+    occupiedUnits: 0,
+    activeTenants: 0,
+    collectionRate: 0,
+    collectedRent: 0,
+    outstandingRent: 0,
+    openMaintenanceRequests: 0,
+  };
 
   useStewardContext({
     type: 'page',
@@ -110,18 +117,55 @@ export default function DashboardPage() {
         revenue: stats.totalRevenue,
         properties: stats.totalProperties,
         units: stats.totalUnits,
-        occupancy: stats.occupiedUnits / stats.totalUnits,
+        occupancy: stats.totalUnits > 0 ? stats.occupiedUnits / stats.totalUnits : 0,
       }
     },
     url: '/dashboard',
   });
 
-  // Local state for data (persists until page refresh)
-  const [properties, setProperties] = useState<Property[]>(initialProperties);
-  const [tenants, setTenants] = useState<Tenant[]>(initialTenants);
-  const [units, setUnits] = useState<Unit[]>(initialUnits);
-  const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
+  // Local state for dialog-added data (persists until page refresh)
+  const [localProperties, setLocalProperties] = useState<Property[]>([]);
+  const [localTenants, setLocalTenants] = useState<Tenant[]>([]);
+  const [localUnits] = useState<Unit[]>([]);
+  const [localTransactions, setLocalTransactions] = useState<Transaction[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
+
+  // Combine API data with locally added data
+  const properties = [
+    ...localProperties,
+    ...(data?.properties.map(p => ({
+      id: p.id,
+      organizationId: '',
+      name: p.name,
+      type: p.type,
+      address: p.address,
+      city: p.city,
+      state: p.state,
+      zipCode: '',
+      units: p.units,
+    })) ?? []),
+  ];
+
+  const tenants = [
+    ...localTenants,
+    ...(data?.tenants.map(t => ({
+      id: t.id,
+      organizationId: '',
+      name: t.name,
+      email: t.email,
+      phone: '',
+      status: t.status as 'active' | 'pending' | 'past',
+      moveInDate: '',
+      avatarUrl: t.avatarUrl,
+    })) ?? []),
+  ];
+
+  const transactions = [
+    ...localTransactions,
+    ...(data?.transactions ?? []),
+  ];
+
+  const maintenanceRequests = data?.maintenanceRequests ?? [];
 
   // Dialog open states
   const [addPropertyOpen, setAddPropertyOpen] = useState(false);
@@ -131,24 +175,15 @@ export default function DashboardPage() {
 
   // Handlers for adding new data
   const handlePropertyAdded = (property: Property) => {
-    setProperties((prev) => [...prev, property]);
+    setLocalProperties((prev) => [...prev, property]);
   };
 
-  const handleTenantAdded = (tenant: Tenant, lease?: { unitId: string; startDate: string; endDate: string; rentAmount: number }) => {
-    setTenants((prev) => [...prev, tenant]);
-
-    // If a lease was created, update the unit status to occupied
-    if (lease) {
-      setUnits((prev) =>
-        prev.map((unit) =>
-          unit.id === lease.unitId ? { ...unit, status: 'occupied' as const } : unit
-        )
-      );
-    }
+  const handleTenantAdded = (tenant: Tenant) => {
+    setLocalTenants((prev) => [...prev, tenant]);
   };
 
   const handlePaymentRecorded = (transaction: Transaction) => {
-    setTransactions((prev) => [transaction, ...prev]);
+    setLocalTransactions((prev) => [transaction, ...prev]);
   };
 
   const handleMessageSent = (message: Message) => {
@@ -190,6 +225,19 @@ export default function DashboardPage() {
     },
   ];
 
+  // Show error state
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <h2 className="text-lg font-semibold">Failed to load dashboard</h2>
+          <p className="text-muted-foreground">Please try refreshing the page</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       {/* Page header */}
@@ -203,7 +251,7 @@ export default function DashboardPage() {
         <div className="flex gap-2">
           <Button variant="outline" aria-label="Select date range">
             <Calendar className="h-4 w-4 mr-2" aria-hidden="true" />
-            Nov 2024
+            {new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
           </Button>
           <Button aria-label="View AI Insights">
             <Sparkles className="h-4 w-4 mr-2" aria-hidden="true" />
@@ -224,19 +272,25 @@ export default function DashboardPage() {
               <card.icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{card.value}</div>
-              <div className="flex items-center text-xs text-muted-foreground mt-1">
-                {card.trend === 'up' && (
-                  <TrendingUp className="h-3 w-3 mr-1 text-green-500" aria-label="Trending up" />
-                )}
-                {card.trend === 'down' && (
-                  <TrendingDown className="h-3 w-3 mr-1 text-red-500" aria-label="Trending down" />
-                )}
-                <span className={card.trend === 'up' ? 'text-green-500' : card.trend === 'down' ? 'text-red-500' : ''}>
-                  {card.change}
-                </span>
-                <span className="ml-1">{card.description}</span>
-              </div>
+              {isLoading ? (
+                <Skeleton className="h-8 w-24" />
+              ) : (
+                <>
+                  <div className="text-2xl font-bold">{card.value}</div>
+                  <div className="flex items-center text-xs text-muted-foreground mt-1">
+                    {card.trend === 'up' && (
+                      <TrendingUp className="h-3 w-3 mr-1 text-green-500" aria-label="Trending up" />
+                    )}
+                    {card.trend === 'down' && (
+                      <TrendingDown className="h-3 w-3 mr-1 text-red-500" aria-label="Trending down" />
+                    )}
+                    <span className={card.trend === 'up' ? 'text-green-500' : card.trend === 'down' ? 'text-red-500' : ''}>
+                      {card.change}
+                    </span>
+                    <span className="ml-1">{card.description}</span>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -299,7 +353,9 @@ export default function DashboardPage() {
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Rent Collection</CardTitle>
-                <CardDescription>November 2024</CardDescription>
+                <CardDescription>
+                  {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                </CardDescription>
               </div>
               <Link href="/dashboard/payments">
                 <Button variant="ghost" size="sm">
@@ -310,68 +366,85 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">Collected</p>
-                    <p className="text-2xl font-bold text-green-600">
-                      ${stats.collectedRent.toLocaleString()}
+                {isLoading ? (
+                  <>
+                    <Skeleton className="h-16 w-full" />
+                    <Skeleton className="h-2 w-full" />
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">Collected</p>
+                        <p className="text-2xl font-bold text-green-600">
+                          ${stats.collectedRent.toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="space-y-1 text-right">
+                        <p className="text-sm font-medium">Outstanding</p>
+                        <p className="text-2xl font-bold text-amber-600">
+                          ${stats.outstandingRent.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    <Progress value={stats.collectionRate} className="h-2" />
+                    <p className="text-xs text-muted-foreground">
+                      {stats.collectionRate}% collected • {100 - stats.collectionRate}% pending
                     </p>
-                  </div>
-                  <div className="space-y-1 text-right">
-                    <p className="text-sm font-medium">Outstanding</p>
-                    <p className="text-2xl font-bold text-amber-600">
-                      ${stats.outstandingRent.toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-                <Progress value={stats.collectionRate} className="h-2" />
-                <p className="text-xs text-muted-foreground">
-                  {stats.collectionRate}% collected • {100 - stats.collectionRate}% pending
-                </p>
+                  </>
+                )}
               </div>
 
               {/* Recent payments */}
               <div className="mt-6 space-y-3">
                 <p className="text-sm font-medium">Recent Payments</p>
-                {transactions.slice(0, 3).map((tx) => (
-                  <div
-                    key={tx.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`h-8 w-8 rounded-full flex items-center justify-center ${tx.status === 'completed' ? 'bg-green-100' : tx.status === 'pending' ? 'bg-amber-100' : 'bg-red-100'
-                        }`}>
-                        {tx.status === 'completed' ? (
-                          <CheckCircle2 className="h-4 w-4 text-green-600" />
-                        ) : tx.status === 'pending' ? (
-                          <Clock className="h-4 w-4 text-amber-600" />
-                        ) : (
-                          <AlertCircle className="h-4 w-4 text-red-600" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{tx.description}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(tx.date).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className={`text-sm font-semibold ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                        {tx.type === 'income' ? '+' : '-'}${tx.amount.toLocaleString()}
-                      </p>
-                      <Badge
-                        variant={
-                          tx.status === 'completed' ? 'default' : tx.status === 'pending' ? 'secondary' : 'destructive'
-                        }
-                        className="text-xs"
-                      >
-                        {tx.status}
-                      </Badge>
-                    </div>
+                {isLoading ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 w-full" />)}
                   </div>
-                ))}
+                ) : transactions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4 text-center">No recent payments</p>
+                ) : (
+                  transactions.slice(0, 3).map((tx) => (
+                    <div
+                      key={tx.id}
+                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`h-8 w-8 rounded-full flex items-center justify-center ${tx.status === 'completed' ? 'bg-green-100' : tx.status === 'pending' ? 'bg-amber-100' : 'bg-red-100'
+                          }`}>
+                          {tx.status === 'completed' ? (
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          ) : tx.status === 'pending' ? (
+                            <Clock className="h-4 w-4 text-amber-600" />
+                          ) : (
+                            <AlertCircle className="h-4 w-4 text-red-600" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{tx.description}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(tx.date).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className={`text-sm font-semibold ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                          {tx.type === 'income' ? '+' : '-'}${tx.amount.toLocaleString()}
+                        </p>
+                        <Badge
+                          variant={
+                            tx.status === 'completed' ? 'default' : tx.status === 'pending' ? 'secondary' : 'destructive'
+                          }
+                          className="text-xs"
+                        >
+                          {tx.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -394,41 +467,49 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {mockMaintenanceRequests.map((request) => (
-                  <div
-                    key={request.id}
-                    className="flex items-center justify-between p-3 rounded-lg border"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${request.priority === 'high' ? 'bg-red-100' :
-                        request.priority === 'normal' ? 'bg-amber-100' : 'bg-blue-100'
-                        }`}>
-                        <Wrench className={`h-5 w-5 ${request.priority === 'high' ? 'text-red-600' :
-                          request.priority === 'normal' ? 'text-amber-600' : 'text-blue-600'
-                          }`} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{request.title}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Unit {request.unitId} • {new Date(request.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant={
-                          request.status === 'open' ? 'destructive' :
-                            request.status === 'in_progress' ? 'default' : 'secondary'
-                        }
-                      >
-                        {request.status.replace('_', ' ')}
-                      </Badge>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </div>
+                {isLoading ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 w-full" />)}
                   </div>
-                ))}
+                ) : maintenanceRequests.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4 text-center">No maintenance requests</p>
+                ) : (
+                  maintenanceRequests.map((request) => (
+                    <div
+                      key={request.id}
+                      className="flex items-center justify-between p-3 rounded-lg border"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${request.priority === 'high' ? 'bg-red-100' :
+                          request.priority === 'normal' ? 'bg-amber-100' : 'bg-blue-100'
+                          }`}>
+                          <Wrench className={`h-5 w-5 ${request.priority === 'high' ? 'text-red-600' :
+                            request.priority === 'normal' ? 'text-amber-600' : 'text-blue-600'
+                            }`} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{request.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Unit {request.unitId} • {new Date(request.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant={
+                            request.status === 'submitted' ? 'destructive' :
+                              request.status === 'in_progress' ? 'default' : 'secondary'
+                          }
+                        >
+                          {request.status.replace('_', ' ')}
+                        </Badge>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -448,26 +529,34 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {properties.map((property) => (
-                  <Link
-                    key={property.id}
-                    href={`/dashboard/properties/${property.id}`}
-                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Home className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{property.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {property.units} units • {property.city}, {property.state}
-                      </p>
-                    </div>
-                    <Badge variant="outline" className="text-xs">
-                      {property.type}
-                    </Badge>
-                  </Link>
-                ))}
+                {isLoading ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3].map(i => <Skeleton key={i} className="h-14 w-full" />)}
+                  </div>
+                ) : properties.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4 text-center">No properties yet</p>
+                ) : (
+                  properties.slice(0, 5).map((property) => (
+                    <Link
+                      key={property.id}
+                      href={`/dashboard/properties/${property.id}`}
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Home className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{property.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {property.units} units • {property.city}, {property.state}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        {property.type}
+                      </Badge>
+                    </Link>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -484,31 +573,39 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {tenants.slice(0, 5).map((tenant) => (
-                  <div
-                    key={tenant.id}
-                    className="flex items-center gap-3"
-                  >
-                    <Avatar className="h-9 w-9">
-                      <AvatarImage src={tenant.avatarUrl} alt={tenant.name} />
-                      <AvatarFallback>
-                        {tenant.name.split(' ').map(n => n[0]).join('')}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{tenant.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {tenant.email}
-                      </p>
-                    </div>
-                    <Badge
-                      variant={tenant.status === 'active' ? 'default' : 'secondary'}
-                      className="text-xs"
-                    >
-                      {tenant.status}
-                    </Badge>
+                {isLoading ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3].map(i => <Skeleton key={i} className="h-10 w-full" />)}
                   </div>
-                ))}
+                ) : tenants.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4 text-center">No tenants yet</p>
+                ) : (
+                  tenants.slice(0, 5).map((tenant) => (
+                    <div
+                      key={tenant.id}
+                      className="flex items-center gap-3"
+                    >
+                      <Avatar className="h-9 w-9">
+                        <AvatarImage src={tenant.avatarUrl} alt={tenant.name} />
+                        <AvatarFallback>
+                          {tenant.name.split(' ').map(n => n[0]).join('')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{tenant.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {tenant.email}
+                        </p>
+                      </div>
+                      <Badge
+                        variant={tenant.status === 'active' ? 'default' : 'secondary'}
+                        className="text-xs"
+                      >
+                        {tenant.status}
+                      </Badge>
+                    </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -552,7 +649,7 @@ export default function DashboardPage() {
         onOpenChange={setAddTenantOpen}
         onTenantAdded={handleTenantAdded}
         properties={properties}
-        units={units}
+        units={localUnits}
       />
 
       <RecordPaymentDialog

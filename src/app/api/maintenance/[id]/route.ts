@@ -33,28 +33,20 @@ type RouteParams = {
 // GET /api/maintenance/[id] - Get a single maintenance request with full details
 export async function GET(request: Request, { params }: RouteParams) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
     const { id } = await params
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
 
     const maintenanceRequest = await prisma.maintenanceRequest.findFirst({
       where: {
         id,
         unit: {
           property: {
-            organizationId: user.organizationId,
+            organizationId: organizationId,
           },
         },
       },
@@ -118,21 +110,13 @@ export async function GET(request: Request, { params }: RouteParams) {
 // PATCH /api/maintenance/[id] - Update a maintenance request
 export async function PATCH(request: Request, { params }: RouteParams) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
     const { id } = await params
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
 
     // Check if request exists and belongs to user's organization
     const existingRequest = await prisma.maintenanceRequest.findFirst({
@@ -140,7 +124,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         id,
         unit: {
           property: {
-            organizationId: user.organizationId,
+            organizationId: organizationId,
           },
         },
       },
@@ -175,7 +159,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       const vendor = await prisma.vendor.findFirst({
         where: {
           id: data.vendorId,
-          organizationId: user.organizationId,
+          organizationId: organizationId,
         },
       })
 
@@ -189,7 +173,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       const assignee = await prisma.user.findFirst({
         where: {
           id: data.assignedToId,
-          organizationId: user.organizationId,
+          organizationId: organizationId,
         },
       })
 
@@ -236,8 +220,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        organizationId: user.organizationId,
-        userId: user.id,
+        organizationId: organizationId,
+        userId,
         action: 'UPDATE',
         entityType: 'maintenance_request',
         entityId: maintenanceRequest.id,
@@ -260,21 +244,13 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 // DELETE /api/maintenance/[id] - Delete a maintenance request (only if not started)
 export async function DELETE(request: Request, { params }: RouteParams) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
     const { id } = await params
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
 
     // Check if request exists and belongs to user's organization
     const existingRequest = await prisma.maintenanceRequest.findFirst({
@@ -282,7 +258,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
         id,
         unit: {
           property: {
-            organizationId: user.organizationId,
+            organizationId: organizationId,
           },
         },
       },
@@ -323,8 +299,8 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        organizationId: user.organizationId,
-        userId: user.id,
+        organizationId: organizationId,
+        userId,
         action: 'DELETE',
         entityType: 'maintenance_request',
         entityId: id,

@@ -44,26 +44,17 @@ type RouteParams = {
 // GET /api/vendors/[id] - Get a single vendor with work history
 export async function GET(request: Request, { params }: RouteParams) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
     const { id } = await params
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     const vendor = await prisma.vendor.findFirst({
       where: {
         id,
-        organizationId: user.organizationId,
+        organizationId,
       },
       include: {
         maintenanceRequests: {
@@ -115,27 +106,18 @@ export async function GET(request: Request, { params }: RouteParams) {
 // PATCH /api/vendors/[id] - Update a vendor
 export async function PATCH(request: Request, { params }: RouteParams) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
     const { id } = await params
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     // Check if vendor exists and belongs to user's organization
     const existingVendor = await prisma.vendor.findFirst({
       where: {
         id,
-        organizationId: user.organizationId,
+        organizationId,
       },
     })
 
@@ -181,8 +163,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        organizationId: user.organizationId,
-        userId: user.id,
+        organizationId: organizationId,
+        userId,
         action: 'UPDATE',
         entityType: 'vendor',
         entityId: vendor.id,
@@ -205,27 +187,18 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 // DELETE /api/vendors/[id] - Delete a vendor (soft delete - mark as inactive)
 export async function DELETE(request: Request, { params }: RouteParams) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
     const { id } = await params
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     // Check if vendor exists and belongs to user's organization
     const existingVendor = await prisma.vendor.findFirst({
       where: {
         id,
-        organizationId: user.organizationId,
+        organizationId: organizationId,
       },
       include: {
         maintenanceRequests: {
@@ -259,8 +232,8 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        organizationId: user.organizationId,
-        userId: user.id,
+        organizationId: organizationId,
+        userId,
         action: 'DELETE',
         entityType: 'vendor',
         entityId: id,

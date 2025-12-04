@@ -36,27 +36,18 @@ type RouteParams = {
 // GET /api/properties/[id]/units - List all units for a property
 export async function GET(request: Request, { params }: RouteParams) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
     const { id: propertyId } = await params
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     // Verify property belongs to user's organization
     const property = await prisma.property.findFirst({
       where: {
         id: propertyId,
-        organizationId: user.organizationId,
+        organizationId,
       },
     })
 
@@ -132,27 +123,18 @@ export async function GET(request: Request, { params }: RouteParams) {
 // POST /api/properties/[id]/units - Create a new unit
 export async function POST(request: Request, { params }: RouteParams) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
     const { id: propertyId } = await params
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     // Verify property belongs to user's organization
     const property = await prisma.property.findFirst({
       where: {
         id: propertyId,
-        organizationId: user.organizationId,
+        organizationId,
       },
     })
 
@@ -220,8 +202,8 @@ export async function POST(request: Request, { params }: RouteParams) {
     // Create audit log
     await prisma.auditLog.create({
       data: {
-        organizationId: user.organizationId,
-        userId: user.id,
+        organizationId,
+        userId,
         action: 'CREATE',
         entityType: 'unit',
         entityId: unit.id,

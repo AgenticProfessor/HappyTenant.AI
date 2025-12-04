@@ -21,20 +21,12 @@ const messageSchema = z.object({
 // GET /api/messages - List messages for the user
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
 
     // Get query params for filtering
     const { searchParams } = new URL(request.url)
@@ -137,20 +129,12 @@ export async function GET(request: Request) {
 // POST /api/messages - Send a new message
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth()
+    const { userId, organizationId } = await auth()
 
-    if (!userId) {
+    if (!userId || !organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user with organization
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
 
     // Parse and validate request body
     const body = await request.json()
@@ -173,7 +157,7 @@ export async function POST(request: Request) {
       const tenant = await prisma.tenant.findFirst({
         where: {
           id: data.recipientId,
-          organizationId: user.organizationId,
+          organizationId: organizationId,
         },
       })
       if (!tenant) {
@@ -184,7 +168,7 @@ export async function POST(request: Request) {
       const recipientUser = await prisma.user.findFirst({
         where: {
           id: data.recipientId,
-          organizationId: user.organizationId,
+          organizationId: organizationId,
         },
       })
       if (!recipientUser) {
@@ -198,7 +182,7 @@ export async function POST(request: Request) {
     // In a real app, we'd need more robust logic to handle multiple conversations
     let conversation = await prisma.conversation.findFirst({
       where: {
-        organizationId: user.organizationId,
+        organizationId: organizationId,
         participants: {
           every: {
             OR: [
@@ -214,7 +198,7 @@ export async function POST(request: Request) {
     if (!conversation) {
       conversation = await prisma.conversation.create({
         data: {
-          organizationId: user.organizationId,
+          organizationId: organizationId,
           type: recipientTenantId ? 'LANDLORD_TENANT' : 'INTERNAL',
           participants: {
             create: [
@@ -254,7 +238,7 @@ export async function POST(request: Request) {
           tenantId: recipientTenantId,
           type: 'NEW_MESSAGE',
           title: data.subject || 'New Message',
-          body: `You have a new message from ${user.firstName} ${user.lastName}`,
+          body: 'You have a new message from your property manager',
           channels: ['IN_APP', 'EMAIL'],
         },
       })
